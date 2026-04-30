@@ -1,5 +1,6 @@
 import { useData } from "../context/Context";
 import { useEffect, useMemo, useState } from "react";
+import SalesQuoteDetail from "./SalesQuoteDetail";
 
 const SalesQuotesList = () => {
     const { salesQuotes, getSalesQuotes, loading } = useData();
@@ -8,6 +9,8 @@ const SalesQuotesList = () => {
     const [sortField, setSortField] = useState("id");
     const [sortDirection, setSortDirection] = useState("asc");
     const [searchField, setSearchField] = useState("id");
+    const [selectedQuoteId, setSelectedQuoteId] = useState(null);
+    const selectedQuote = salesQuotes.find(q => q.id === selectedQuoteId) ?? null;
 
     useEffect(() => {
         getSalesQuotes();
@@ -113,7 +116,6 @@ const SalesQuotesList = () => {
         purchace_order_num: "Orden de Compra",
         list: "Lista",
         observations: "Observaciones",
-
         concept_subtotal: "Subtotal Conceptos",
         concept_discount: "Desc. Conceptos",
         article_subtotal: "Subtotal Artículos",
@@ -126,15 +128,26 @@ const SalesQuotesList = () => {
         reduced_vat: "IVA Reducido",
         r_vat_subtotal: "Base IVA Reducido",
         total: "Total",
-
         is_model: "Es modelo",
-
         date: "Fecha",
         created_at: "Creado",
         updated_at: "Actualizado",
     };
 
     if (loading) return <p>Loading...</p>;
+
+    if (selectedQuote) {
+        return (
+            <div>
+                <h2>Detalle del presupuesto #{selectedQuote.id}</h2>
+
+                <SalesQuoteDetail
+                    quote={selectedQuote}
+                    onBack={() => setSelectedQuoteId(null)}
+                />
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -174,6 +187,7 @@ const SalesQuotesList = () => {
                                         {columnLabels[col] || col}
                                     </th>
                                 ))}
+                                <th>Acciones</th>
                             </tr>
                         </thead>
 
@@ -212,6 +226,11 @@ const SalesQuotesList = () => {
                                             </td>
                                         );
                                     })}
+                                    <td style={{ border: "1px solid #ccc", padding: "4px" }}>
+                                        <button onClick={() => setSelectedQuoteId(q.id)}>
+                                            Ver detalle
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
