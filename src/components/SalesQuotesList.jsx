@@ -1,137 +1,90 @@
 import { useData } from "../context/Context";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import SalesQuoteDetail from "./SalesQuoteDetail";
 
 const SalesQuotesList = () => {
-    const { salesQuotes, getSalesQuotes, loading } = useData();
+    const {
+        salesQuotes,
+        getSalesQuotes,
+        loading,
+        getQuoteDocument,
+        getQuoteAccountName,
+        getQuoteAccountTaxNum,
+        getQuoteCondition,
+        getQuoteTaxPosition,
+        getQuoteFullNumber
+    } = useData();
 
     const [searchInput, setSearchInput] = useState("");
-    const [sortField, setSortField] = useState("id");
-    const [sortDirection, setSortDirection] = useState("asc");
     const [searchField, setSearchField] = useState("id");
     const [selectedQuoteId, setSelectedQuoteId] = useState(null);
     const selectedQuote = salesQuotes.find(q => q.id === selectedQuoteId) ?? null;
+    const [appliedQuery, setAppliedQuery] = useState("");
+    const query = appliedQuery.trim().toLowerCase();
 
     useEffect(() => {
         getSalesQuotes();
     }, []);
 
-    const filteredQuotes = useMemo(() => {
-        const query = searchInput.trim().toLowerCase();
+    const getFieldValue = (q, field) => {
+        switch (field) {
+            case "data_documents":
+                return getQuoteDocument(q);
 
-        const filtered = salesQuotes.filter(q => {
-            if (!query) return true;
+            case "full_number":
+                return getQuoteFullNumber(q);
 
-            // 🔹 búsqueda global (lo que ya tenías)
-            if (searchField === "global") {
-                return (
-                    String(q.id).includes(query) ||
-                    String(q.account_id).includes(query) ||
-                    String(q.data_document_id).includes(query) ||
-                    String(q.data_condition_type_id).includes(query) ||
-                    String(q.data_tax_position_id).includes(query) ||
-                    String(q.motor_id).includes(query) ||
+            case "account_name":
+                return getQuoteAccountName(q);
 
-                    String(q.number).includes(query) ||
-                    q.full_number?.toLowerCase().includes(query) ||
+            case "condition":
+                return getQuoteCondition(q);
 
-                    q.account_name?.toLowerCase().includes(query) ||
-                    q.document?.toLowerCase().includes(query) ||
-                    q.condition?.toLowerCase().includes(query) ||
-                    q.tax_position?.toLowerCase().includes(query) ||
-                    q.motor?.toLowerCase().includes(query) ||
+            case "tax_position":
+                return getQuoteTaxPosition(q);
 
-                    q.address?.toLowerCase().includes(query) ||
-                    q.phone_num?.toLowerCase().includes(query) ||
-                    q.reference?.toLowerCase().includes(query) ||
-                    q.purchace_order_num?.toLowerCase().includes(query) ||
-                    q.list?.toLowerCase().includes(query) ||
-                    q.observations?.toLowerCase().includes(query) ||
+            case "tax_num":
+                return getQuoteAccountTaxNum(q);
 
-                    String(q.total).includes(query) ||
-                    String(q.date).toLowerCase().includes(query)
-                );
-            }
-
-            // 🔹 búsqueda por campo específico
-            const value = q[searchField];
-
-            if (value === null || value === undefined) return false;
-
-            if (typeof value === "object") {
-                if (Array.isArray(value)) {
-                    return false;
-                }
-                if (value.name) return value.name.toLowerCase().includes(query);
-                if (value.desc) return value.desc.toLowerCase().includes(query);
-                return JSON.stringify(value).toLowerCase().includes(query);
-            }
-
-            if (typeof value === "boolean") {
-                return (value ? "true" : "false").includes(query);
-            }
-
-            return String(value).toLowerCase().includes(query);
-        });
-
-        return [...filtered].sort((a, b) => {
-            let comparison = 0;
-
-            const getVal = (obj, field) => obj[field] ?? "";
-
-            if (sortField === "date" || sortField === "created_at" || sortField === "updated_at") {
-                comparison = new Date(a[sortField]) - new Date(b[sortField]);
-            } else if (typeof getVal(a, sortField) === "number") {
-                comparison = (a[sortField] ?? 0) - (b[sortField] ?? 0);
-            } else {
-                comparison = String(getVal(a, sortField)).localeCompare(String(getVal(b, sortField)));
-            }
-
-            return sortDirection === "asc" ? comparison : -comparison;
-        });
-    }, [salesQuotes, searchInput, sortField, sortDirection, searchField]);
-
-    const handleSort = (field) => {
-        if (sortField === field) {
-            setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
-        } else {
-            setSortField(field);
-            setSortDirection("asc");
+            default:
+                return q[field];
         }
     };
 
+    const filteredQuotes = salesQuotes.filter(q => {
+        if (!query) return true;
+
+        const value = getFieldValue(q, searchField);
+
+        if (value === null || value === undefined) return false;
+
+        return String(value).toLowerCase().includes(query);
+    });
+
     const columnLabels = {
-        id: "ID",
-        account_id: "Cliente (ID)",
-        data_document_id: "Documento (ID)",
-        data_condition_type_id: "Condición (ID)",
-        data_tax_position_id: "Condición Fiscal (ID)",
-        motor_id: "Motor (ID)",
-        number: "Número",
-        letter: "Letra",
-        point: "Punto",
+        data_documents: "Documento",
+        full_number: "Comprobante",
+        date: "Fecha",
+        is_model: "Modelo",
+
+        account_name: "Cliente",
+        account_id: "Cliente ID",
         address: "Dirección",
         phone_num: "Teléfono",
+
+        data_condition_type_id: "Condición ID",
+        condition: "Condición",
+
+        tax_position: "Condición Fiscal",
+        tax_num: "CUIT",
+
+        motor_id: "Motor ID",
+
         reference: "Referencia",
-        purchace_order_num: "Orden de Compra",
-        list: "Lista",
+        purchace_order_num: "Orden Compra",
         observations: "Observaciones",
-        concept_subtotal: "Subtotal Conceptos",
-        concept_discount: "Desc. Conceptos",
-        article_subtotal: "Subtotal Artículos",
-        article_discount: "Desc. Artículos",
-        general_discount: "Descuento General",
-        general_recharge: "Recargo General",
-        general_subtotal: "Subtotal General",
-        general_vat: "IVA",
-        g_vat_subtotal: "Base IVA",
-        reduced_vat: "IVA Reducido",
-        r_vat_subtotal: "Base IVA Reducido",
-        total: "Total",
-        is_model: "Es modelo",
-        date: "Fecha",
-        created_at: "Creado",
-        updated_at: "Actualizado",
+
+        total: "Total"
     };
 
     if (loading) return <p>Loading...</p>;
@@ -164,12 +117,18 @@ const SalesQuotesList = () => {
                 style={{ marginBottom: "1rem" }}
             >
 
-                {Object.keys(salesQuotes[0] || {}).map(col => (
+                {Object.keys(columnLabels).map(col => (
                     <option key={col} value={col}>
-                        {columnLabels[col] || col}
+                        {columnLabels[col]}
                     </option>
                 ))}
             </select>
+            <button
+                onClick={() => setAppliedQuery(searchInput)}
+                style={{ marginBottom: "1rem" }}
+            >
+                🔍 Buscar
+            </button>
 
             {filteredQuotes.length === 0 ? (
                 <p>No hay resultados</p>
@@ -178,57 +137,37 @@ const SalesQuotesList = () => {
                     <table style={{ borderCollapse: "collapse", width: "100%" }}>
                         <thead>
                             <tr>
-                                {Object.keys(filteredQuotes[0]).map(col => (
-                                    <th
-                                        key={col}
-                                        onClick={() => handleSort(col)}
-                                        style={{ cursor: "pointer", border: "1px solid #ccc", padding: "4px" }}
-                                    >
-                                        {columnLabels[col] || col}
+                                {Object.keys(columnLabels).map(col => (
+                                    <th key={col} value={col}>
+                                        {columnLabels[col]}
                                     </th>
                                 ))}
-                                <th>Acciones</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             {filteredQuotes.map(q => (
                                 <tr key={q.id}>
-                                    {Object.keys(q).map(col => {
-                                        const value = q[col];
-
-                                        let displayValue = "";
-
-                                        if (value === null || value === undefined) {
-                                            displayValue = "";
-                                        } else if (typeof value === "object") {
-                                            // Caso objetos (relaciones)
-                                            if (Array.isArray(value)) {
-                                                displayValue = `[${value.length} items]`;
-                                            } else if (value.name) {
-                                                displayValue = value.name;
-                                            } else if (value.desc) {
-                                                displayValue = value.desc;
-                                            } else if (value.id) {
-                                                displayValue = `ID: ${value.id}`;
-                                            } else {
-                                                displayValue = JSON.stringify(value);
-                                            }
-                                        } else if (typeof value === "boolean") {
-                                            displayValue = value ? "true" : "false";
-                                        } else {
-                                            displayValue = value;
-                                        }
-
-                                        return (
-                                            <td key={col} style={{ border: "1px solid #ccc", padding: "4px" }}>
-                                                {displayValue}
-                                            </td>
-                                        );
-                                    })}
-                                    <td style={{ border: "1px solid #ccc", padding: "4px" }}>
+                                    <td>{getQuoteDocument(q)}</td>
+                                    <td>{getQuoteFullNumber(q)}</td>
+                                    <td>{q.date}</td>
+                                    <td>{q.is_model === "1" ? "Sí" : "No"}</td>
+                                    <td>{getQuoteAccountName(q)}</td>
+                                    <td>{q.account_id}</td>
+                                    <td>{q.address}</td>
+                                    <td>{q.phone_num}</td>
+                                    <td>{q.data_condition_type_id}</td>
+                                    <td>{getQuoteCondition(q)}</td>
+                                    <td>{getQuoteTaxPosition(q)}</td>
+                                    <td>{getQuoteAccountTaxNum(q)}</td>
+                                    <td>{q.motor_id}</td>
+                                    <td>{q.reference}</td>
+                                    <td>{q.purchace_order_num}</td>
+                                    <td>{q.observations}</td>
+                                    <td>{q.total}</td>
+                                    <td>
                                         <button onClick={() => setSelectedQuoteId(q.id)}>
-                                            Ver detalle
+                                            Ver detalles
                                         </button>
                                     </td>
                                 </tr>

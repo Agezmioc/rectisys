@@ -1,12 +1,28 @@
+import { useEffect, useState } from "react";
 import { useData } from "../context/Context";
+import SalesQuoteItemsList from "./SalesQuoteItemsList";
 
 const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
-    const { deleteSalesQuote } = useData();
+    const { deleteSalesQuote, getSalesQuoteItems } = useData();
+
+    const [items, setItems] = useState([]);
+    const [loadingItems, setLoadingItems] = useState(false);
 
     const handleDelete = () => {
         deleteSalesQuote?.(quote.id);
         onBack?.();
     };
+    
+    useEffect(() => {
+        const loadItems = async () => {
+            setLoadingItems(true);
+            const data = await getSalesQuoteItems(quote.id);
+            setItems(data);
+            setLoadingItems(false);
+        };
+        
+        loadItems();
+    }, [quote.id]);
 
     return (
         <div>
@@ -65,8 +81,16 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
 
             <h3>Items</h3>
 
-            {/* 🔹 Placeholder (lo implementamos después) */}
-            <p>[Listado de items próximamente]</p>
+            {loadingItems ? (
+                <p>Cargando items...</p>
+            ) : items.length === 0 ? (
+                <p>No hay items</p>
+            ) : (
+                <SalesQuoteItemsList
+                    items={items}
+                    loading={loadingItems}
+                />
+            )}
 
             <hr />
 
