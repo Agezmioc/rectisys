@@ -1,6 +1,7 @@
 import { useData } from "../context/Context";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SalesQuoteDetail from "./SalesQuoteDetail";
+import SalesQuoteManager from "./SalesQuoteManager";
 
 const SalesQuotesList = () => {
     const {
@@ -9,101 +10,142 @@ const SalesQuotesList = () => {
         loading,
         getQuoteDocument,
         getQuoteAccountName,
-        getQuoteAccountTaxNum,
-        getQuoteCondition,
-        getQuoteTaxPosition,
-        getQuoteFullNumber
+        getStockLists
     } = useData();
 
     const [searchInput, setSearchInput] = useState("");
-    const [searchField, setSearchField] = useState("id");
+    const [searchField, setSearchField] = useState("account_name");
     const [selectedQuoteId, setSelectedQuoteId] = useState(null);
-    const selectedQuote = salesQuotes.find(q => q.id === selectedQuoteId) ?? null;
+    const selectedQuote = useMemo(() => {
+        return salesQuotes.find(q => q.id === selectedQuoteId) ?? null;
+    }, [salesQuotes, selectedQuoteId]);
     const [appliedQuery, setAppliedQuery] = useState("");
     const query = appliedQuery.trim().toLowerCase();
+    const [isCreating, setIsCreating] = useState(false)
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         getSalesQuotes();
+        getStockLists();
     }, []);
 
     const getFieldValue = (q, field) => {
         switch (field) {
-            case "data_documents":
+            case "document":
                 return getQuoteDocument(q);
-
-            case "full_number":
-                return getQuoteFullNumber(q);
 
             case "account_name":
                 return getQuoteAccountName(q);
 
-            case "condition":
-                return getQuoteCondition(q);
-
-            case "tax_position":
-                return getQuoteTaxPosition(q);
-
-            case "tax_num":
-                return getQuoteAccountTaxNum(q);
+            case "motor":
+                return q.stock_motors?.desc || "";
 
             default:
                 return q[field];
         }
     };
 
-    const filteredQuotes = salesQuotes.filter(q => {
-        if (!query) return true;
+    const filteredQuotes = salesQuotes
+        .filter(q => {
+            if (!query) return true;
 
-        const value = getFieldValue(q, searchField);
+            const value = getFieldValue(q, searchField);
 
-        if (value === null || value === undefined) return false;
+            if (value === null || value === undefined) {
+                return false;
+            }
 
-        return String(value).toLowerCase().includes(query);
-    });
+            return String(value)
+                .toLowerCase()
+                .includes(query);
+        })
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 100);
 
     const columnLabels = {
-        data_documents: "Documento",
-        full_number: "Comprobante",
-        date: "Fecha",
-        is_model: "Modelo",
-
         account_name: "Cliente",
         account_id: "Cliente ID",
-        address: "Dirección",
-        phone_num: "Teléfono",
-
-        data_condition_type_id: "Condición ID",
-        condition: "Condición",
-
-        tax_position: "Condición Fiscal",
-        tax_num: "CUIT",
-
-        motor_id: "Motor ID",
-
+        document: "Documento",
+        number: "Número",
+        date: "Fecha",
+        is_model: "Modelo",
+        motor: "Motor",
         reference: "Referencia",
         purchace_order_num: "Orden Compra",
-        observations: "Observaciones",
-
         total: "Total"
     };
 
     if (loading) return <p>Loading...</p>;
 
+    
+    if (isCreating) {
+        return (
+            <>
+                <SalesQuoteManager
+                    quote={null}
+                    onCancel={() => setIsCreating(false)}
+                    onSaved={(saved) => {
+                        setIsEditing(false);
+                        setIsCreating(false);
+                        getSalesQuotes();
+                        setSelectedQuoteId(saved.id);
+                    }}
+                />
+            </>
+        );
+    }
+
+    if (isEditing && selectedQuote) {
+        return (
+            <>
+                <button onClick={() => setIsEditing(false)}>
+                    ← Volver
+                </button>
+
+                <SalesQuoteManager
+                    initialQuote={selectedQuote}
+                    onCancel={() => setIsEditing(false)}
+                    onSaved={(saved) => {
+                        setIsEditing(false);
+                        setIsCreating(false);
+                        getSalesQuotes();
+                        setSelectedQuoteId(saved.id);
+                    }}
+                />
+            </>
+        );
+    }
+
     if (selectedQuote) {
         return (
-            <div>
-                <h2>Detalle del presupuesto #{selectedQuote.id}</h2>
-
-                <SalesQuoteDetail
-                    quote={selectedQuote}
-                    onBack={() => setSelectedQuoteId(null)}
-                />
-            </div>
+            <SalesQuoteDetail
+                quote={selectedQuote}
+                onBack={() => setSelectedQuoteId(null)}
+                onNew={() => {
+                    setIsCreating(true);
+                    setSelectedQuoteId(null);
+                }}
+                onEdit={() => {
+                    setSelectedQuoteId(selectedQuote.id);
+                    setIsEditing(true);
+                }}
+            />
         );
     }
 
     return (
         <div>
+            <div style={{ marginBottom: "1rem" }}>
+                <button
+                    onClick={() => {
+                        setSelectedQuoteId(null);
+                        setIsEditing(false);
+                        setIsCreating(true);
+                    }}
+                >
+                    + Nuevo presupuesto
+                </button>
+            </div>
             <input
                 type="text"
                 placeholder="Buscar en todos los campos..."
@@ -148,23 +190,26 @@ const SalesQuotesList = () => {
                         <tbody>
                             {filteredQuotes.map(q => (
                                 <tr key={q.id}>
-                                    <td>{getQuoteDocument(q)}</td>
-                                    <td>{getQuoteFullNumber(q)}</td>
-                                    <td>{q.date}</td>
-                                    <td>{q.is_model === "1" ? "Sí" : "No"}</td>
                                     <td>{getQuoteAccountName(q)}</td>
+
                                     <td>{q.account_id}</td>
-                                    <td>{q.address}</td>
-                                    <td>{q.phone_num}</td>
-                                    <td>{q.data_condition_type_id}</td>
-                                    <td>{getQuoteCondition(q)}</td>
-                                    <td>{getQuoteTaxPosition(q)}</td>
-                                    <td>{getQuoteAccountTaxNum(q)}</td>
-                                    <td>{q.motor_id}</td>
+
+                                    <td>{getQuoteDocument(q)}</td>
+
+                                    <td>{q.number}</td>
+
+                                    <td>{q.date}</td>
+
+                                    <td>{q.is_model === "1" ? "Sí" : "No"}</td>
+
+                                    <td>{q.stock_motors?.desc || "-"}</td>
+
                                     <td>{q.reference}</td>
+
                                     <td>{q.purchace_order_num}</td>
-                                    <td>{q.observations}</td>
+
                                     <td>{q.total}</td>
+
                                     <td>
                                         <button onClick={() => setSelectedQuoteId(q.id)}>
                                             Ver detalles

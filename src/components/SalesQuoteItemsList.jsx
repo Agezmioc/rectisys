@@ -7,6 +7,7 @@ const SalesQuoteItemsList = ({ items, loading }) => {
         <table style={{ width: "100%", marginTop: "1rem" }}>
             <thead>
                 <tr>
+                    <th>#</th>
                     <th>Artículo ID</th>
                     <th>Código</th>
                     <th>Descripción</th>
@@ -20,8 +21,10 @@ const SalesQuoteItemsList = ({ items, loading }) => {
             </thead>
 
             <tbody>
-                {items.map(item => (
+                {items.map((item, index) => (
                     <tr key={item.id}>
+                        <td>{String(index + 1).padStart(3, "0")}</td>
+
                         <td>{item.stock_art_id}</td>
                         <td>{item.stock_articles?.code}</td>
                         <td>{item.stock_articles?.desc}</td>
