@@ -2,6 +2,7 @@ import { useData } from "../context/Context";
 import { useEffect, useMemo, useState } from "react";
 import SalesQuoteDetail from "./SalesQuoteDetail";
 import SalesQuoteManager from "./SalesQuoteManager";
+import "./SalesQuotesList.css";
 
 const SalesQuotesList = () => {
     const {
@@ -134,8 +135,8 @@ const SalesQuotesList = () => {
     }
 
     return (
-        <div>
-            <div style={{ marginBottom: "1rem" }}>
+        <div className="sales-quotes-list">
+            <div className="sales-quotes-actions">
                 <button
                     onClick={() => {
                         setSelectedQuoteId(null);
@@ -146,37 +147,37 @@ const SalesQuotesList = () => {
                     + Nuevo presupuesto
                 </button>
             </div>
-            <input
-                type="text"
-                placeholder="Buscar en todos los campos..."
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                style={{ width: "100%", marginBottom: "1rem" }}
-            />
-            <select
-                value={searchField}
-                onChange={e => setSearchField(e.target.value)}
-                style={{ marginBottom: "1rem" }}
-            >
 
-                {Object.keys(columnLabels).map(col => (
-                    <option key={col} value={col}>
-                        {columnLabels[col]}
-                    </option>
-                ))}
-            </select>
-            <button
-                onClick={() => setAppliedQuery(searchInput)}
-                style={{ marginBottom: "1rem" }}
-            >
-                🔍 Buscar
-            </button>
+            <div className="sales-quotes-filters">
+                <input
+                    className="sales-quotes-input"
+                    type="text"
+                    placeholder="Buscar..."
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                />
+
+                <select
+                    value={searchField}
+                    onChange={e => setSearchField(e.target.value)}
+                >
+                    {Object.keys(columnLabels).map(col => (
+                        <option key={col} value={col}>
+                            {columnLabels[col]}
+                        </option>
+                    ))}
+                </select>
+
+                <button onClick={() => setAppliedQuery(searchInput)}>
+                    Buscar
+                </button>
+            </div>
 
             {filteredQuotes.length === 0 ? (
                 <p>No hay resultados</p>
             ) : (
-                <div style={{ overflowX: "auto" }}>
-                    <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                <div className="sales-quotes-table-container">
+                    <table className="sales-quotes-table">
                         <thead>
                             <tr>
                                 {Object.keys(columnLabels).map(col => (

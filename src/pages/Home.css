@@ -1,0 +1,13 @@
+.home {
+  padding: 1rem;
+  height: 100vh;
+}
+
+.home-header {
+  margin-bottom: 1rem;
+}
+
+.home-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+}

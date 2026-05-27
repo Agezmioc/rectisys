@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "../context/Context";
 import SalesQuoteItemsList from "./SalesQuoteItemsList";
+import "./SalesQuoteDetail.css";
 
 const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
     const {
@@ -15,6 +16,7 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
 
     const [items, setItems] = useState([]);
     const [loadingItems, setLoadingItems] = useState(false);
+    const [showDetails, setShowDetails] = useState(true);
 
     const handleDelete = async () => {
         const confirmed = window.confirm(
@@ -41,76 +43,185 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
         loadItems();
     }, [quote?.id]);
 
-    const account = dataAccounts.find(a => a.id === Number(quote.account_id));
     const document = dataDocuments.find(d => d.id === Number(quote.data_document_id));
     const condition = dataConditionsTypes.find(c => c.id === Number(quote.data_condition_type_id));
     const taxPosition = dataTaxPositions.find(t => t.id === Number(quote.data_tax_position_id));
-    const motor = stockMotors.find(m => m.id === Number(quote.motor_id));
+    const account = dataAccounts?.find(
+        a => String(a.id) === String(quote.account_id)
+    );
+    const motor = stockMotors?.find(
+        m => String(m.id) === String(quote.motor_id)
+    );
+
+    console.log("quote.account_id:", quote.account_id);
+    console.log("accounts:", dataAccounts);
+    console.log("motor_id:", quote.motor_id);
+    console.log("stockMotors:", stockMotors);
+
+    const isDataReady =
+        dataAccounts?.length &&
+        dataDocuments?.length &&
+        dataConditionsTypes?.length &&
+        dataTaxPositions?.length &&
+        stockMotors?.length;
+
+    if (!isDataReady) {
+        return (
+            <div className="sales-quote-detail">
+                <p>Cargando datos del presupuesto...</p>
+            </div>
+        );
+    }
 
     return (
-        <div>
-            <button onClick={onBack}>← Volver</button>
-            
-            <div style={{ margin: "1rem" }}>
-                <button onClick={onNew}>Nuevo</button>
-                <button onClick={onEdit}>Editar</button>
-                <button onClick={handleDelete}>Eliminar</button>
-            </div>
+        <div className="sales-quote-detail">
 
-            <h2>Presupuesto #{quote.id}</h2>
+            {/* HEADER */}
+            <header className="sales-quote-detail-header">
 
-            <p><b>Documento:</b> {document?.desc}</p>
+                <div className="sales-quote-detail-topbar">
 
-            <p>
-                <b>Comprobante:</b>{" "}
-                {`${quote.letter || ""}-${String(quote.point || 0).padStart(4, "0")}-${String(quote.number || 0).padStart(8, "0")}`}
-            </p>
+                    <button onClick={onBack}>
+                        ← Volver
+                    </button>
 
-            <p><b>Fecha:</b> {quote.date}</p>
+                    <div className="sales-quote-detail-actions">
+                        <button onClick={onNew}>
+                            Nuevo
+                        </button>
 
-            <p><b>Es modelo:</b> {quote.is_model === "1" ? "Sí" : "No"}</p>
+                        <button onClick={onEdit}>
+                            Editar
+                        </button>
 
-            <hr />
+                        <button onClick={handleDelete}>
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
 
-            <p><b>Cliente:</b> {account?.name}</p>
-            <p><b>CUIT:</b> {account?.tax_num}</p>
+                <h2 className="sales-quote-detail-title">
+                    Presupuesto #{quote.id}
+                </h2>
+                {showDetails && (
+                    <div className="sales-quote-detail-grid">
 
-            <p><b>Dirección:</b> {quote.address}</p>
-            <p><b>Teléfono:</b> {quote.phone_num}</p>
+                        {/* DOCUMENTO */}
+                        <div className="sales-quote-card">
+                            <h3>Documento</h3>
 
-            <p><b>Condición:</b> {condition?.desc}</p>
-            <p><b>Condición fiscal:</b> {taxPosition?.desc}</p>
+                            <div className="sales-quote-field">
+                                <b>Documento:</b> {document?.desc || "-"}
+                            </div>
 
-            <p><b>Motor:</b> {motor?.desc}</p>
+                            <div className="sales-quote-field">
+                                <b>Comprobante:</b>{" "}
+                                {`${quote.letter || ""}-${String(quote.point || 0).padStart(4, "0")}-${String(quote.number || 0).padStart(8, "0")}`}
+                            </div>
 
-            <p><b>Referencia:</b> {quote.reference}</p>
-            <p><b>Orden de compra:</b> {quote.purchace_order_num}</p>
+                            <div className="sales-quote-field">
+                                <b>Fecha:</b> {quote.date}
+                            </div>
 
-            <hr />
+                            <div className="sales-quote-field">
+                                <b>Modelo:</b>{" "}
+                                {quote.is_model === "1" ? "Sí" : "No"}
+                            </div>
+                        </div>
 
-            <h3>Total</h3>
-            <p><b>Total:</b> {quote.total}</p>
+                        {/* CLIENTE */}
+                        <div className="sales-quote-card">
+                            <h3>Cliente</h3>
 
-            <hr />
+                            <div className="sales-quote-field">
+                                <b>Cliente:</b> {account?.name || "-"}
+                            </div>
 
-            <p><b>Observaciones:</b> {quote.observations}</p>
+                            <div className="sales-quote-field">
+                                <b>CUIT:</b> {account?.tax_num || "-"}
+                            </div>
 
-            <hr />
+                            <div className="sales-quote-field">
+                                <b>Dirección:</b> {quote?.address || "-"}
+                            </div>
 
-            <h3>Items</h3>
+                            <div className="sales-quote-field">
+                                <b>Teléfono:</b> {quote?.phone_num || "-"}
+                            </div>
+                        </div>
 
-            {loadingItems ? (
-                <p>Cargando items...</p>
-            ) : items.length === 0 ? (
-                <p>No hay items</p>
-            ) : (
-                <SalesQuoteItemsList
-                    items={items}
-                    loading={loadingItems}
-                />
-            )}
+                        {/* COMERCIAL */}
+                        <div className="sales-quote-card">
+                            <h3>Comercial</h3>
 
-            <hr />
+                            <div className="sales-quote-field">
+                                <b>Condición:</b> {condition?.desc}
+                            </div>
+
+                            <div className="sales-quote-field">
+                                <b>Condición fiscal:</b> {taxPosition?.desc}
+                            </div>
+
+                            <div className="sales-quote-field">
+                                <b>Motor:</b> {motor?.desc}
+                            </div>
+
+                            <div className="sales-quote-field">
+                                <b>Referencia:</b> {quote.reference}
+                            </div>
+
+                            <div className="sales-quote-field">
+                                <b>Orden compra:</b> {quote.purchace_order_num}
+                            </div>
+                        </div>
+
+                        {/* TOTAL */}
+                        <div className="sales-quote-card">
+                            <h3>Total</h3>
+
+                            <div className="sales-quote-field">
+                                <b>Total:</b> {quote.total}
+                            </div>
+
+                            <div className="sales-quote-field">
+                                <b>Observaciones:</b>
+                            </div>
+
+                            <div>
+                                {quote.observations || "-"}
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+                <button onClick={() => setShowDetails(prev => !prev)}>
+                    {showDetails ? "▲" : "▼"}
+                </button>
+            </header>
+
+            {/* ITEMS */}
+            <section className="sales-quote-items-section">
+
+                <div className="sales-quote-items-header">
+                    <h3>Items</h3>
+                </div>
+
+                <div className="sales-quote-items-container">
+
+                    {loadingItems ? (
+                        <p>Cargando items...</p>
+                    ) : items.length === 0 ? (
+                        <p>No hay items</p>
+                    ) : (
+                        <SalesQuoteItemsList
+                            items={items}
+                            loading={loadingItems}
+                        />
+                    )}
+
+                </div>
+
+            </section>
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "../context/Context";
+import "./ArticleSelector.css";
 
 const ArticleSelector = ({
     isConcept,
@@ -19,61 +20,61 @@ const ArticleSelector = ({
     const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("desc");
 
-    
     const priceIndex = useMemo(() => {
         const map = new Map();
-        
+
         for (const p of stockPrices) {
             const key = `${p.article_id}-${p.list_id}`;
             map.set(key, Number(p.price));
         }
-        
+
         return map;
     }, [stockPrices]);
-    
+
     const vatMap = useMemo(() => {
         return new Map(dataVatTypes.map(v => [v.id, v]));
     }, [dataVatTypes]);
-    
+
     const getArticlePrice = (articleId) => {
-        return priceIndex.get(`${articleId}-${listId}`)
-        ?? priceIndex.get(`${articleId}-0`)
-        ?? 0;
+        const key = `${Number(articleId)}-${Number(listId)}`;
+
+        return (
+            priceIndex.get(key) ??
+            priceIndex.get(`${Number(articleId)}-0`) ??
+            0
+        );
     };
-    
+
     const getArticleVat = (article) => {
         return vatMap.get(article.vat_type_id)?.value ?? 0;
     };
-    
+
     const baseArticles = useMemo(() => {
         return stockArticles.filter(article =>
             article.is_concept === isConcept
         );
     }, [stockArticles, isConcept]);
 
-    const hasSearched = searchQuery.trim().length > 0;
+    const filteredArticles = useMemo(() => {
+        const query = searchQuery.toLowerCase();
 
-    const filteredArticles = hasSearched
-        ? baseArticles
+        if (!query) return [];
+
+        return baseArticles
             .filter(article => {
-                const query = searchQuery.toLowerCase();
-
                 if (searchField === "desc") {
                     return article.desc?.toLowerCase().includes(query);
                 }
-
                 if (searchField === "code") {
                     return article.code?.toLowerCase().includes(query);
                 }
-
                 if (searchField === "id") {
                     return String(article.id).includes(query);
                 }
-
                 return true;
             })
-            .sort((a, b) => a.id - b.id)
-        : [];
+            .sort((a, b) => a.id - b.id);
+    }, [baseArticles, searchQuery, searchField]);
 
     const toggleArticle = (id) => {
         setSelectedIds(prev =>
@@ -113,15 +114,21 @@ const ArticleSelector = ({
         getDataVatTypes();
     }, []);
 
-    
     return (
-        <div style={{ border: "1px solid #ccc", padding: "1rem" }}>
-            <h2>
-                Seleccionar {isConcept ? "conceptos" : "artículos"}
-            </h2>
+        <div className="article-selector">
 
-            <div style={{ marginBottom: "1rem" }}>
+            {/* HEADER */}
+            <div className="article-selector-header">
+                <h3>
+                    Seleccionar {isConcept ? "conceptos" : "artículos"}
+                </h3>
+            </div>
+
+            {/* TOOLBAR */}
+            <div className="article-selector-toolbar">
+
                 <input
+                    className="article-selector-input"
                     type="text"
                     placeholder="Buscar..."
                     value={searchInput}
@@ -129,9 +136,9 @@ const ArticleSelector = ({
                 />
 
                 <select
+                    className="article-selector-select"
                     value={searchField}
                     onChange={e => setSearchField(e.target.value)}
-                    style={{ marginLeft: "0.5rem" }}
                 >
                     <option value="desc">Descripción</option>
                     <option value="code">Código</option>
@@ -140,84 +147,85 @@ const ArticleSelector = ({
 
                 <button
                     type="button"
-                    onClick={() => {
-                        console.log("🧪 SEARCH CLICK DEBUG");
-
-                        console.log("VAT DEBUG SAMPLE:", {
-                            articleVatType: filteredArticles[0]?.vat_type_id,
-                            vatMapKeys: [...vatMap.keys()].slice(0, 10),
-                            vatMapKeyTypes: typeof [...vatMap.keys()][0]
-                        });
-
-                        setSearchQuery(searchInput);
-                    }}
+                    className="article-selector-btn primary"
+                    onClick={() => setSearchQuery(searchInput)}
                 >
                     🔍 Buscar
-</button>
+                </button>
+
             </div>
 
-            <table width="100%">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Código</th>
-                        <th>Descripción</th>
-                        <th>Precio</th>
-                        <th>IVA</th>
-                        <th>
-                            <input
-                                type="checkbox"
-                                checked={
-                                    filteredArticles.length > 0 &&
-                                    filteredArticles.every(article =>
-                                        selectedIds.includes(article.id)
-                                    )
-                                }
-                                onChange={toggleAll}
-                            />
-                        </th>
-                    </tr>
-                </thead>
+            {/* TABLE */}
+            <div className="article-selector-table-container">
 
-                <tbody>
-                    {filteredArticles.map(article => (
-                        <tr key={article.id}>
-                            <td>{article.id}</td>
-                            <td>{article.code}</td>
-                            <td>{article.desc}</td>
-
-                            <td>{getArticlePrice(article.id, article.is_concept)}</td>
-                            <td>{getArticleVat(article)}%</td>
-
-                            <td>
+                <table className="article-selector-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>IVA</th>
+                            <th>
                                 <input
                                     type="checkbox"
-                                    checked={selectedIds.includes(article.id)}
-                                    onChange={() => toggleArticle(article.id)}
+                                    checked={
+                                        filteredArticles.length > 0 &&
+                                        filteredArticles.every(article =>
+                                            selectedIds.includes(article.id)
+                                        )
+                                    }
+                                    onChange={toggleAll}
                                 />
-                            </td>
+                            </th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
 
-            <div style={{ marginTop: "1rem" }}>
+                    <tbody>
+                        {filteredArticles.map(article => (
+                            <tr key={article.id}>
+                                <td>{article.id}</td>
+                                <td>{article.code}</td>
+                                <td>{article.desc}</td>
+                                <td>{getArticlePrice(article.id)}</td>
+                                <td>{getArticleVat(article)}%</td>
+
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(article.id)}
+                                        onChange={() => toggleArticle(article.id)}
+                                    />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+            </div>
+
+            {/* FOOTER */}
+            <div className="article-selector-footer">
+
                 <button
                     type="button"
+                    className="article-selector-btn primary"
                     onClick={handleConfirm}
                     disabled={selectedIds.length === 0}
                 >
-                    ✅ Agregar seleccionados ({selectedIds.length})
+                    ✅ Agregar ({selectedIds.length})
                 </button>
 
                 <button
                     type="button"
+                    className="article-selector-btn danger"
                     onClick={onCancel}
-                    style={{ marginLeft: "0.5rem" }}
                 >
                     ❌ Cancelar
                 </button>
+
             </div>
+
         </div>
     );
 };

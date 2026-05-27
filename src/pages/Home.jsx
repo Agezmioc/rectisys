@@ -1,17 +1,16 @@
-
-import SalesQuotesList from "../components/SalesQuotesList"
+import "./Home.css";
+import SalesQuotesList from "../components/SalesQuotesList";
 
 const Home = () => {
-
   return (
-    <div>
-        Home
-        <header>
-            <h1>Presupuestos</h1>
-        </header>
-        <SalesQuotesList/>
-    </div>
-  )
-}
+    <main className="home">
+      <header className="home-header">
+        <h1>Presupuestos</h1>
+      </header>
 
-export default Home
+      <SalesQuotesList />
+    </main>
+  );
+};
+
+export default Home;

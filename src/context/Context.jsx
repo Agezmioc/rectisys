@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabase/client";
 
 export const Context = createContext()
@@ -281,6 +281,9 @@ export const ContextProvider = ({children}) => {
                 .select("*")
                 .order("id", { ascending: true })
                 .range(from, from + limit - 1);
+            
+            console.log("RANGE:", from, from + limit - 1);
+            console.log("FETCHED:", data?.length);
 
             if (error) {
                 console.error(error);
@@ -440,6 +443,21 @@ export const ContextProvider = ({children}) => {
 
     const getQuoteFullNumber = quote =>
         `${quote.letter || ""}-${String(quote.point || 0).padStart(4, "0")}-${String(quote.number || 0).padStart(8, "0")}`;
+
+    useEffect(() => {
+        const init = async () => {
+            await Promise.all([
+                getDataAccounts(),
+                getDataDocuments(),
+                getDataConditionsTypes(),
+                getDataTaxPositions(),
+                getStockMotors(),
+                getStockLists()
+            ]);
+        };
+
+        init();
+    }, []);
 
     return <Context.Provider
             value={{
