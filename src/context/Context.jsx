@@ -294,6 +294,8 @@ export const ContextProvider = ({children}) => {
             if (data.length < limit) break;
 
             from += limit;
+            console.log("FETCH RANGE:", from, from + limit - 1);
+            console.log("FETCHED:", data.length);
         }
 
         console.log("📦 RAW SUPABASE STOCK PRICES:", all.length);
