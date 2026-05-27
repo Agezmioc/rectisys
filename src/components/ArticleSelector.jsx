@@ -38,15 +38,6 @@ const ArticleSelector = ({
     const getArticlePrice = (articleId) => {
         const key = `${Number(articleId)}-${Number(listId)}`;
     
-        console.log("LIST ID:", listId, typeof listId);
-    
-        console.log("PRICE DEBUG:", {
-            articleId,
-            listId,
-            key,
-            exists: priceIndex.has(key),
-        });
-    
         return (
             priceIndex.get(key)
             ?? priceIndex.get(`${Number(articleId)}-0`)
