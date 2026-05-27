@@ -281,6 +281,9 @@ export const ContextProvider = ({children}) => {
                 .select("*")
                 .order("id", { ascending: true })
                 .range(from, from + limit - 1);
+            
+            console.log("RANGE:", from, from + limit - 1);
+            console.log("FETCHED:", data?.length);
 
             if (error) {
                 console.error(error);
@@ -294,8 +297,6 @@ export const ContextProvider = ({children}) => {
             if (data.length < limit) break;
 
             from += limit;
-            console.log("FETCH RANGE:", from, from + limit - 1);
-            console.log("FETCHED:", data.length);
         }
 
         console.log("📦 RAW SUPABASE STOCK PRICES:", all.length);
