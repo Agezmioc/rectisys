@@ -9,38 +9,31 @@ const ArticleSelector = ({
     listId,
 }) => {
     const {
-        stockArticles,
-        stockPrices,
+        getStockArticles,
         dataVatTypes,
         getDataVatTypes
     } = useData();
 
     const [selectedIds, setSelectedIds] = useState([]);
-    const [searchInput, setSearchInput] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchText, setSearchText] = useState("");
     const [searchField, setSearchField] = useState("desc");
-
-    const priceIndex = useMemo(() => {
-        const map = new Map();
-
-        for (const p of stockPrices) {
-            const key = `${p.article_id}-${p.list_id}`;
-            map.set(key, Number(p.price));
-        }
-
-        return map;
-    }, [stockPrices]);
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const vatMap = useMemo(() => {
         return new Map(dataVatTypes.map(v => [v.id, v]));
     }, [dataVatTypes]);
 
-    const getArticlePrice = (articleId) => {
-        const key = `${Number(articleId)}-${Number(listId)}`;
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
 
+    const getArticlePrice = (article) => {
         return (
-            priceIndex.get(key) ??
-            priceIndex.get(`${Number(articleId)}-0`) ??
+            article.prices.find(p => p.list_id === Number(listId))?.price ??
+            article.prices.find(p => p.list_id === 0)?.price ??
             0
         );
     };
@@ -49,32 +42,19 @@ const ArticleSelector = ({
         return vatMap.get(article.vat_type_id)?.value ?? 0;
     };
 
-    const baseArticles = useMemo(() => {
-        return stockArticles.filter(article =>
-            article.is_concept === isConcept
-        );
-    }, [stockArticles, isConcept]);
+    const handleSearch = async () => {
+        setLoading(true);
 
-    const filteredArticles = useMemo(() => {
-        const query = searchQuery.toLowerCase();
+        const foundArticles = await getStockArticles({
+            isConcept,
+            searchField,
+            searchQuery: searchText
+        });
 
-        if (!query) return [];
+        setArticles(foundArticles);
 
-        return baseArticles
-            .filter(article => {
-                if (searchField === "desc") {
-                    return article.desc?.toLowerCase().includes(query);
-                }
-                if (searchField === "code") {
-                    return article.code?.toLowerCase().includes(query);
-                }
-                if (searchField === "id") {
-                    return String(article.id).includes(query);
-                }
-                return true;
-            })
-            .sort((a, b) => a.id - b.id);
-    }, [baseArticles, searchQuery, searchField]);
+        setLoading(false);
+    };
 
     const toggleArticle = (id) => {
         setSelectedIds(prev =>
@@ -85,7 +65,7 @@ const ArticleSelector = ({
     };
 
     const toggleAll = () => {
-        const visibleIds = filteredArticles.map(a => a.id);
+        const visibleIds = articles.map(a => a.id);
 
         const allSelected = visibleIds.every(id =>
             selectedIds.includes(id)
@@ -103,7 +83,7 @@ const ArticleSelector = ({
     };
 
     const handleConfirm = () => {
-        const selectedArticles = filteredArticles.filter(article =>
+        const selectedArticles = articles.filter(article =>
             selectedIds.includes(article.id)
         );
 
@@ -131,8 +111,14 @@ const ArticleSelector = ({
                     className="article-selector-input"
                     type="text"
                     placeholder="Buscar..."
-                    value={searchInput}
-                    onChange={e => setSearchInput(e.target.value)}
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSearch();
+                        }
+                    }}
                 />
 
                 <select
@@ -148,9 +134,26 @@ const ArticleSelector = ({
                 <button
                     type="button"
                     className="article-selector-btn primary"
-                    onClick={() => setSearchQuery(searchInput)}
+                    onClick={handleSearch}
                 >
                     🔍 Buscar
+                </button>
+
+                <button
+                    type="button"
+                    className="article-selector-btn primary"
+                    onClick={handleConfirm}
+                    disabled={selectedIds.length === 0}
+                >
+                    ✅ Agregar ({selectedIds.length})
+                </button>
+
+                <button
+                    type="button"
+                    className="article-selector-btn danger"
+                    onClick={onCancel}
+                >
+                    ❌ Cancelar
                 </button>
 
             </div>
@@ -170,8 +173,8 @@ const ArticleSelector = ({
                                 <input
                                     type="checkbox"
                                     checked={
-                                        filteredArticles.length > 0 &&
-                                        filteredArticles.every(article =>
+                                        articles.length > 0 &&
+                                        articles.every(article =>
                                             selectedIds.includes(article.id)
                                         )
                                     }
@@ -180,49 +183,36 @@ const ArticleSelector = ({
                             </th>
                         </tr>
                     </thead>
-
                     <tbody>
-                        {filteredArticles.map(article => (
-                            <tr key={article.id}>
-                                <td>{article.id}</td>
-                                <td>{article.code}</td>
-                                <td>{article.desc}</td>
-                                <td>{getArticlePrice(article.id)}</td>
-                                <td>{getArticleVat(article)}%</td>
-
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedIds.includes(article.id)}
-                                        onChange={() => toggleArticle(article.id)}
-                                    />
-                                </td>
+                        {loading ? (
+                            <tr>
+                                <td colSpan={6}>Buscando...</td>
                             </tr>
-                        ))}
+                        ) : articles.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>No se encontraron resultados.</td>
+                            </tr>
+                        ) : (
+                            articles.map(article => (
+                                <tr key={article.id}>
+                                    <td>{article.id}</td>
+                                    <td>{article.code}</td>
+                                    <td>{article.desc}</td>
+                                    <td>{formatMoney(getArticlePrice(article))}</td>
+                                    <td>{getArticleVat(article)}%</td>
+
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(article.id)}
+                                            onChange={() => toggleArticle(article.id)}
+                                        />
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
-
-            </div>
-
-            {/* FOOTER */}
-            <div className="article-selector-footer">
-
-                <button
-                    type="button"
-                    className="article-selector-btn primary"
-                    onClick={handleConfirm}
-                    disabled={selectedIds.length === 0}
-                >
-                    ✅ Agregar ({selectedIds.length})
-                </button>
-
-                <button
-                    type="button"
-                    className="article-selector-btn danger"
-                    onClick={onCancel}
-                >
-                    ❌ Cancelar
-                </button>
 
             </div>
 

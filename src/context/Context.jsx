@@ -13,23 +13,51 @@ export const useData = () => {
 export const ContextProvider = ({children}) => {
     const [salesQuotes, setSalesQuotes] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [stockArticles, setStockArticles] = useState([]);
     const [dataAccounts, setDataAccounts] = useState([]);
     const [dataDocuments, setDataDocuments] = useState([]);
     const [dataConditionsTypes, setDataConditionsTypes] = useState([]);
     const [dataTaxPositions, setDataTaxPositions] = useState([]);
     const [stockMotors, setStockMotors] = useState([]);
     const [stockLists, setStockLists] = useState([]);
-    const [stockPrices, setStockPrices] = useState([]);
     const [dataVatTypes, setDataVatTypes] = useState([]);
+    const [dataSequences, setDataSequences] = useState([]);
 
 
     const createSalesQuote = async (quoteData, items = []) => {
         console.log("createSalesQuote Start");
+        console.log("tax_num:", quoteData.tax_num);
         console.log(quoteData);
         console.log(items);
 
         setLoading(true);
+
+        const { data: sequenceData, error: sequenceError } = await supabase.rpc(
+            "next_document_number",
+            {
+                p_document_id: quoteData.data_document_id
+            }
+        );
+
+        if (sequenceError) {
+            console.error("Error generating document number:", sequenceError);
+            setLoading(false);
+            return null;
+        }
+
+        if (!sequenceData?.length) {
+            console.error("Document has no associated sequence.");
+            setLoading(false);
+            return null;
+        }
+
+        const { letter, point, number } = sequenceData[0];
+
+        quoteData = {
+            ...quoteData,
+            letter,
+            point,
+            number,
+        };
 
         const { data: quote, error: quoteError } = await supabase
             .from("sales_quotes")
@@ -44,7 +72,6 @@ export const ContextProvider = ({children}) => {
         }
 
         if (items.length > 0) {
-            // eslint-disable-next-line no-unused-vars
             const formattedItems = items.map(item => ({
                 stock_art_id: item.stock_art_id === "" ? null : Number(item.stock_art_id),
                 is_concept: item.is_concept,
@@ -111,14 +138,14 @@ export const ContextProvider = ({children}) => {
                 total,
                 created_at,
                 updated_at,
+                tax_num,
 
                 data_documents (
                     desc
                 ),
 
                 data_accounts (
-                    name,
-                    tax_num
+                    name
                 ),
 
                 data_conditions_types (
@@ -169,17 +196,67 @@ export const ContextProvider = ({children}) => {
         return data;
     };
 
-    const getStockArticles = async () => {
-        const { data, error } = await supabase
+    const getStockArticles = async ({
+        isConcept,
+        searchField = "desc",
+        searchQuery = ""
+    }) => {
+        let query = supabase
             .from("stock_articles")
-            .select("*");
+            .select("*")
+            .eq("is_concept", isConcept)
+            .order("id");
 
-        if (error) {
-            console.error("Error fetching stock articles:", error);
-            return;
+        if (searchQuery) {
+            switch (searchField) {
+                case "id":
+                    query = query.eq("id", Number(searchQuery));
+                    break;
+
+                case "code":
+                    query = query.ilike("code", `%${searchQuery}%`);
+                    break;
+
+                default:
+                    query = query.ilike("desc", `%${searchQuery}%`);
+            }
         }
 
-        setStockArticles(data);
+        const { data: articles, error } = await query;
+
+        if (error) {
+            console.error(error);
+            return [];
+        }
+
+        if (articles.length === 0)
+            return [];
+
+        const articleIds = articles.map(a => a.id);
+
+        const { data: prices, error: pricesError } = await supabase
+            .from("stock_prices")
+            .select("*")
+            .in("article_id", articleIds);
+
+        if (pricesError) {
+            console.error(pricesError);
+            return articles;
+        }
+
+        const pricesMap = new Map();
+
+        for (const p of prices) {
+            if (!pricesMap.has(p.article_id))
+                pricesMap.set(p.article_id, []);
+
+            pricesMap.get(p.article_id).push(p);
+        }
+
+        return articles.map(article => ({
+            ...article,
+            prices: pricesMap.get(article.id) ?? []
+        }));
     };
 
     const getDataAccounts = async () => {
@@ -205,7 +282,7 @@ export const ContextProvider = ({children}) => {
     const getDataDocuments = async () => {
         const { data, error } = await supabase
             .from("data_documents")
-            .select("id, desc");
+            .select("*");
 
         if (error) {
             console.error("Error loading documents:", error);
@@ -270,43 +347,21 @@ export const ContextProvider = ({children}) => {
         return data;
     };
 
-    const getStockPrices = async () => {
-        const limit = 1000;
-        let from = 0;
-        let all = [];
+    // const getStockPrices = async (articleIds = []) => {
+    //     if (!articleIds.length) return [];
 
-        while (true) {
-            const { data, error } = await supabase
-                .from("stock_prices")
-                .select("*")
-                .order("id", { ascending: true })
-                .range(from, from + limit - 1);
-            
-            console.log("RANGE:", from, from + limit - 1);
-            console.log("FETCHED:", data?.length);
+    //     const { data, error } = await supabase
+    //         .from("stock_prices")
+    //         .select("*")
+    //         .in("article_id", articleIds);
 
-            if (error) {
-                console.error(error);
-                break;
-            }
+    //     if (error) {
+    //         console.error("Error fetching stock prices:", error);
+    //         return [];
+    //     }
 
-            if (!data?.length) break;
-
-            all.push(...data);
-
-            if (data.length < limit) break;
-
-            from += limit;
-        }
-
-        console.log("📦 RAW SUPABASE STOCK PRICES:", all.length);
-        console.log("📦 LIST IDS FROM SUPABASE:", [
-            ...new Set(all.map(p => p.list_id))
-        ]);
-        
-        setStockPrices(all);
-        return all;
-    };
+    //     return data;
+    // };
 
     const getDataVatTypes = async () => {
         const { data, error } = await supabase
@@ -320,6 +375,21 @@ export const ContextProvider = ({children}) => {
         }
 
         setDataVatTypes(data);
+        return data;
+    };
+
+    const getDataSequences = async () => {
+        const { data, error } = await supabase
+            .from("data_sequences")
+            .select("*")
+            .order("id");
+
+        if (error) {
+            console.error(error);
+            return [];
+        }
+
+        setDataSequences(data);
         return data;
     };
 
@@ -426,6 +496,413 @@ export const ContextProvider = ({children}) => {
         return true;
     };
 
+    const clearTempArticles = async () => {
+        const { error } = await supabase
+            .from("temp_articles")
+            .delete()
+            .neq("id", 0);
+
+        if (error) {
+            console.error(error);
+            return false;
+        }
+
+        return true;
+    };
+
+    const uploadTempArticles = async (records) => {
+        const ok = await clearTempArticles();
+
+        if (!ok) return false;
+
+        const { error } = await supabase
+            .from("temp_articles")
+            .insert(records);
+
+        if (error) {
+            console.error(error);
+            return false;
+        }
+
+        return true;
+    };
+
+    const processTempArticles = async () => {
+
+        const { data: tempArticles, error: tempError } =
+            await supabase
+                .from("temp_articles")
+                .select("*");
+
+        if (tempError) {
+            console.error(tempError);
+            return null;
+        }
+
+        const { data: stockCategories, error: categoriesError } =
+            await supabase
+                .from("stock_categories")
+                .select("*");
+
+        if (categoriesError) {
+            console.error(categoriesError);
+            return null;
+        }
+
+        const categoryMap = new Map(
+            stockCategories.map(c => [
+                c.desc?.trim(),
+                c
+            ])
+        );
+
+        const { data: parameters, error: parametersError } =
+            await supabase
+                .from("data_parameters")
+                .select("provider_account_id")
+                .eq("id", 2)
+                .single();
+
+        if (parametersError) {
+            console.error(parametersError);
+            return null;
+        }
+
+        const providerAccountId = parameters.provider_account_id;
+
+        let inserted = 0;
+        let updated = 0;
+
+        for (const temp of tempArticles) {
+            const categoryCode = temp.code.substring(0, 4).trim();
+
+            let category =
+                categoryMap.get(categoryCode);
+
+            if (!category) {
+
+                const { data: newCategory, error: categoryError } =
+                    await supabase
+                        .from("stock_categories")
+                        .insert([{
+                            desc: categoryCode,
+                            created_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+
+                if (categoryError) {
+                    console.error(categoryError);
+                    continue;
+                }
+
+                category = newCategory;
+
+                categoryMap.set(
+                    categoryCode,
+                    newCategory
+                );
+            }
+
+            const { data: existingArticle, error: articleSearchError } =
+                await supabase
+                    .from("stock_articles")
+                    .select("*")
+                    .eq("code", temp.code)
+                    .eq("account_id", providerAccountId)
+                    .maybeSingle();
+
+            if (articleSearchError) {
+                console.error(articleSearchError);
+                continue;
+            }
+
+            if (!existingArticle) {
+
+                const { data: newArticle, error: articleError } =
+                    await supabase
+                        .from("stock_articles")
+                        .insert([{
+                            code: temp.code,
+                            measure: temp.measure,
+                            desc: temp.desc,
+
+                            is_concept: false,
+
+                            stock: 0,
+                            min: 0,
+                            max: 0,
+
+                            account_id: providerAccountId,
+                            category_id: category.id,
+
+                            class_id: 1,
+
+                            vat_type_id: 1,
+
+                            is_disabled: false,
+
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+
+                if (articleError) {
+                    console.error(articleError);
+                    continue;
+                }
+
+                await supabase
+                    .from("stock_prices")
+                    .insert([{
+                        article_id: newArticle.id,
+                        list_id: 0,
+
+                        cost: temp.price,
+                        margin: 50,
+                        price: temp.price*1.5,
+
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }]);
+
+                inserted++;
+
+                continue;
+            }
+
+            await supabase
+                .from("stock_articles")
+                .update({
+                    measure: temp.measure,
+                    desc: temp.desc,
+                    account_id: providerAccountId,
+                    category_id: category.id,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", existingArticle.id);
+
+            const { data: existingPrice, error: priceError } =
+                await supabase
+                    .from("stock_prices")
+                    .select("*")
+                    .eq("article_id", existingArticle.id)
+                    .eq("list_id", 0)
+                    .maybeSingle();
+
+            if (priceError) {
+                console.error(priceError);
+                continue;
+            }
+
+            if (existingPrice) {
+
+                await supabase
+                    .from("stock_prices")
+                    .update({
+                        cost: temp.price,
+                        margin: 50,
+                        price: temp.price * 1.5,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq("id", existingPrice.id);
+
+            } else {
+
+                await supabase
+                    .from("stock_prices")
+                    .insert([{
+                        article_id: existingArticle.id,
+                        list_id: 0,
+
+                        cost: temp.price,
+                        margin: 50,
+                        price: temp.price * 1.5,
+
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }]);
+
+            }
+
+            updated++;
+        }
+
+        return {
+            total: tempArticles.length,
+            inserted,
+            updated
+        };
+    };
+
+    const processTempConcepts = async () => {
+
+        const { data: tempArticles, error } =
+            await supabase
+                .from("temp_articles")
+                .select("*");
+
+        if (error) {
+            console.error(error);
+            return null;
+        }
+
+        const { data: parameters, error: parametersError } =
+            await supabase
+                .from("data_parameters")
+                .select("provider_account_id")
+                .eq("id", 1)
+                .single();
+
+        if (parametersError) {
+            console.error(parametersError);
+            return null;
+        }
+
+        const providerAccountId = parameters.provider_account_id;
+
+        let inserted = 0;
+        let updated = 0;
+
+        for (const temp of tempArticles) {
+
+            if (
+                !temp.code ||
+                !temp.desc ||
+                !temp.list_prices
+            ) {
+                continue;
+            }
+
+            const {
+                data: existingArticle,
+                error: articleSearchError
+            } = await supabase
+                .from("stock_articles")
+                .select("*")
+                .eq("is_concept", true)
+                .eq("code", temp.code)
+                .eq("account_id", providerAccountId)
+                .maybeSingle();
+
+            if (articleSearchError) {
+                console.error(articleSearchError);
+                continue;
+            }
+
+            let articleId;
+
+            if (!existingArticle) {
+
+                const { data: newArticle, error: articleError } =
+                    await supabase
+                        .from("stock_articles")
+                        .insert([{
+                            code: temp.code,
+                            measure: null,
+                            desc: temp.desc,
+
+                            is_concept: true,
+
+                            stock: 0,
+                            min: 0,
+                            max: 0,
+
+                            account_id: providerAccountId,
+                            category_id: 1,
+                            class_id: 2,
+
+                            vat_type_id: 1,
+
+                            is_disabled: false,
+
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+
+                if (articleError) {
+                    console.error(articleError);
+                    continue;
+                }
+
+                articleId = newArticle.id;
+
+                inserted++;
+
+            } else {
+
+                articleId = existingArticle.id;
+
+                await supabase
+                    .from("stock_articles")
+                    .update({
+                        desc: temp.desc,
+                        account_id: providerAccountId,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq("id", articleId);
+
+                updated++;
+            }
+
+            const { data: articlePrices, error: pricesError } =
+                await supabase
+                    .from("stock_prices")
+                    .select("id, article_id, list_id")
+                    .eq("article_id", articleId);
+
+            if (pricesError) {
+                console.error(pricesError);
+                continue;
+            }
+
+            for (const [listId, price] of Object.entries(temp.list_prices)) {
+
+                const existingPrice = articlePrices.find(
+                    p => Number(p.list_id) === Number(listId)
+                );
+
+                if (existingPrice) {
+
+                    await supabase
+                        .from("stock_prices")
+                        .update({
+                            cost: price,
+                            price,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq("id", existingPrice.id);
+
+                } else {
+
+                    await supabase
+                        .from("stock_prices")
+                        .insert([{
+                            article_id: articleId,
+
+                            list_id: Number(listId),
+
+                            cost: price,
+                            margin: 0,
+                            price,
+
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }]);
+                }
+            }
+        }
+
+        return {
+            total: tempArticles.length,
+            inserted,
+            updated
+        };
+    };
+
     const getQuoteDocument = quote =>
     quote.data_documents?.desc || "-";
 
@@ -465,7 +942,6 @@ export const ContextProvider = ({children}) => {
                 salesQuotes,
                 getSalesQuotes,
                 getSalesQuoteItems,
-                stockArticles,
                 getStockArticles,
                 dataAccounts,
                 dataDocuments,
@@ -473,8 +949,8 @@ export const ContextProvider = ({children}) => {
                 dataTaxPositions,
                 stockMotors,
                 stockLists,
-                stockPrices,
                 dataVatTypes,
+                dataSequences,
                 getDataVatTypes,
                 getDataAccounts,
                 getDataDocuments,
@@ -482,9 +958,14 @@ export const ContextProvider = ({children}) => {
                 getDataTaxPositions,
                 getStockMotors,
                 getStockLists,
-                getStockPrices,
+                // getStockPrices,
+                getDataSequences,
                 deleteSalesQuote,
                 updateSalesQuote,
+                clearTempArticles,
+                uploadTempArticles,
+                processTempArticles,
+                processTempConcepts,
                 getQuoteDocument,
                 getQuoteAccountName,
                 getQuoteAccountTaxNum,

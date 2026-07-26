@@ -62,13 +62,6 @@
   background: #f0f0f0;
 }
 
-/* FOOTER */
-.article-selector-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
 /* BUTTONS */
 .article-selector-btn {
   padding: 0.4rem 0.7rem;

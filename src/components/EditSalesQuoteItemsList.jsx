@@ -1,5 +1,5 @@
 import { useData } from "../context/Context";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ArticleSelector from "./ArticleSelector";
 import "./EditSalesQuoteItemsList.css";
 
@@ -10,16 +10,12 @@ const EditSalesQuoteItemsList = ({
     isConsumerFinal
 }) => {
     const {
-        stockArticles,
-        stockPrices,
         dataVatTypes,
-        getStockArticles,
     } = useData();
 
     const [showArticleSelector, setShowArticleSelector] = useState(false);
     const [selectedIsConcept, setSelectedIsConcept] = useState(false);
 
-    const priceMap = new Map(stockPrices.map(p => [p.article_id, p]));
     const vatMap = new Map(dataVatTypes.map(v => [v.id, v]));
 
     const calculateItemTotal = (item) => {
@@ -34,9 +30,20 @@ const EditSalesQuoteItemsList = ({
             : base;
     };
 
-    useEffect(() => {
-        getStockArticles();
-    }, []);
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+    const getArticlePrice = (article) => {
+        return (
+            article.prices.find(p => p.list_id === Number(listId))?.price ??
+            article.prices.find(p => p.list_id === 0)?.price ??
+            0
+        );
+    };
+
 
     const handleChange = (rowId, field, value) => {
         setItems(prev =>
@@ -70,11 +77,11 @@ const EditSalesQuoteItemsList = ({
     if (showArticleSelector) {
         return (
             <ArticleSelector
-                isConcept={selectedIsConcept}
+                isConcept={Boolean(selectedIsConcept)}
                 listId={listId}
                 onConfirm={(articles) => {
                     const newItems = articles.map(article => {
-                        const price = priceMap.get(article.id)?.price ?? 0;
+                        const price = getArticlePrice(article);
                         const vatValue = vatMap.get(article.vat_type_id)?.value ?? 0;
                         const quantity = 1;
 
@@ -82,7 +89,11 @@ const EditSalesQuoteItemsList = ({
 
                         return {
                             temp_id: crypto.randomUUID(),
+
                             stock_art_id: article.id,
+                            article_code: article.code,
+                            article_desc: article.desc,
+
                             is_concept: Boolean(selectedIsConcept),
 
                             quantity,
@@ -146,6 +157,7 @@ const EditSalesQuoteItemsList = ({
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>Código</th>
                             <th>Artículo</th>
                             <th>Cant.</th>
                             <th>Precio</th>
@@ -158,20 +170,16 @@ const EditSalesQuoteItemsList = ({
 
                     <tbody>
                         {items.map((item, index) => {
-                            const article = stockArticles.find(
-                                a => a.id === Number(item.stock_art_id)
-                            );
-
                             return (
                                 <tr key={item.id ?? item.temp_id}>
                                     <td>{String(index + 1).padStart(3, "0")}</td>
 
-                                    <td>
-                                        {article
-                                            ? `${article.code} - ${article.desc}`
-                                            : "No encontrado"}
-                                    </td>
+                                    <td>{item.article_code || item.stock_articles?.code || "-"}</td>
 
+                                    <td>
+                                        {item.article_desc || item.stock_articles?.desc || "Sin descripción"}
+                                    </td>
+                                    
                                     <td>
                                         <input
                                             className="cell-input"
@@ -188,7 +196,7 @@ const EditSalesQuoteItemsList = ({
                                         />
                                     </td>
 
-                                    <td>{item.price}</td>
+                                    <td>{formatMoney(item.price)}</td>
                                     <td>{item.vat_value}</td>
 
                                     <td className="bold">

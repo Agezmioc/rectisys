@@ -65,6 +65,7 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
                         <tr>
                             <th>ID</th>
                             <th>Descripción</th>
+                            <th>Lista</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -74,6 +75,7 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
                             <tr key={motor.id}>
                                 <td>{motor.id}</td>
                                 <td>{motor.desc}</td>
+                                <td>{motor.list_id}</td>
 
                                 <td>
                                     <button

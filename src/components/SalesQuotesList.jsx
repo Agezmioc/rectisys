@@ -3,15 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import SalesQuoteDetail from "./SalesQuoteDetail";
 import SalesQuoteManager from "./SalesQuoteManager";
 import "./SalesQuotesList.css";
+import ArticleFileUploader from "./ArticleFileUploader";
+import ConceptFileUploader from "./ConceptFileUploader";
 
 const SalesQuotesList = () => {
     const {
         salesQuotes,
         getSalesQuotes,
         loading,
-        getQuoteDocument,
         getQuoteAccountName,
-        getStockLists
+        getStockLists,
+        dataTaxPositions,
+        getDataTaxPositions
     } = useData();
 
     const [searchInput, setSearchInput] = useState("");
@@ -24,22 +27,33 @@ const SalesQuotesList = () => {
     const query = appliedQuery.trim().toLowerCase();
     const [isCreating, setIsCreating] = useState(false)
     const [isEditing, setIsEditing] = useState(false);
+    const [showArticleUploader, setShowArticleUploader] = useState(false);
+    const [showConceptUploader, setShowConceptUploader] = useState(false);
+
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
 
     useEffect(() => {
         getSalesQuotes();
         getStockLists();
+        getDataTaxPositions();
     }, []);
 
     const getFieldValue = (q, field) => {
         switch (field) {
-            case "document":
-                return getQuoteDocument(q);
-
             case "account_name":
                 return getQuoteAccountName(q);
 
             case "motor":
                 return q.stock_motors?.desc || "";
+
+            case "tax_position":
+                return dataTaxPositions.find(
+                    tp => tp.id === Number(q.data_tax_position_id)
+                )?.desc || "";
 
             default:
                 return q[field];
@@ -66,7 +80,8 @@ const SalesQuotesList = () => {
     const columnLabels = {
         account_name: "Cliente",
         account_id: "Cliente ID",
-        document: "Documento",
+        tax_position: "Situación fiscal",
+        tax_num: "CUIT",
         number: "Número",
         date: "Fecha",
         is_model: "Modelo",
@@ -77,6 +92,34 @@ const SalesQuotesList = () => {
     };
 
     if (loading) return <p>Loading...</p>;
+
+    if (showArticleUploader) {
+        return (
+            <>
+                <button
+                    onClick={() => setShowArticleUploader(false)}
+                >
+                    ← Volver
+                </button>
+
+                <ArticleFileUploader />
+            </>
+        );
+    }
+
+    if (showConceptUploader) {
+        return (
+            <>
+                <button
+                    onClick={() => setShowConceptUploader(false)}
+                >
+                    ← Volver
+                </button>
+
+                <ConceptFileUploader />
+            </>
+        );
+    }
 
     
     if (isCreating) {
@@ -146,6 +189,22 @@ const SalesQuotesList = () => {
                 >
                     + Nuevo presupuesto
                 </button>
+
+                <button
+                    onClick={() => {
+                        setShowArticleUploader(true);
+                    }}
+                >
+                    📦 Importar Artículos
+                </button>
+
+                <button
+                    onClick={() => {
+                        setShowConceptUploader(true);
+                    }}
+                >
+                    📦 Importar Conceptos
+                </button>
             </div>
 
             <div className="sales-quotes-filters">
@@ -189,35 +248,43 @@ const SalesQuotesList = () => {
                         </thead>
 
                         <tbody>
-                            {filteredQuotes.map(q => (
-                                <tr key={q.id}>
-                                    <td>{getQuoteAccountName(q)}</td>
+                            {filteredQuotes.map(q => {
+                                const taxPosition = dataTaxPositions.find(
+                                    tp => tp.id === Number(q.data_tax_position_id)
+                                );
 
-                                    <td>{q.account_id}</td>
+                                return (
+                                    <tr key={q.id}>
+                                        <td>{getQuoteAccountName(q)}</td>
 
-                                    <td>{getQuoteDocument(q)}</td>
+                                        <td>{q.account_id}</td>
 
-                                    <td>{q.number}</td>
+                                        <td>{taxPosition?.desc || "-"}</td>
 
-                                    <td>{q.date}</td>
+                                        <td>{q.tax_num || "-"}</td>
 
-                                    <td>{q.is_model === "1" ? "Sí" : "No"}</td>
+                                        <td>{q.number}</td>
 
-                                    <td>{q.stock_motors?.desc || "-"}</td>
+                                        <td>{q.date}</td>
 
-                                    <td>{q.reference}</td>
+                                        <td>{q.is_model === "1" ? "Sí" : "No"}</td>
 
-                                    <td>{q.purchace_order_num}</td>
+                                        <td>{q.stock_motors?.desc || "-"}</td>
 
-                                    <td>{q.total}</td>
+                                        <td>{q.reference}</td>
 
-                                    <td>
-                                        <button onClick={() => setSelectedQuoteId(q.id)}>
-                                            Ver detalles
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                                        <td>{q.purchace_order_num}</td>
+
+                                        <td>{formatMoney(q.total)}</td>
+
+                                        <td>
+                                            <button onClick={() => setSelectedQuoteId(q.id)}>
+                                                Ver detalles
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

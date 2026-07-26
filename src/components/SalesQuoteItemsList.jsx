@@ -5,13 +5,19 @@ const SalesQuoteItemsList = ({ items, loading }) => {
 
     if (!items.length) return <p>No hay items</p>;
 
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
     return (
         <div className="sales-quote-items-table-container">
             <table className="sales-quote-items-table">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Artículo ID</th>
+                        <th>ID</th>
                         <th>Código</th>
                         <th>Descripción</th>
                         <th>Concepto</th>
@@ -33,9 +39,9 @@ const SalesQuoteItemsList = ({ items, loading }) => {
                             <td>{item.stock_articles?.desc || "-"}</td>
                             <td>{item.is_concept ? "Sí" : "No"}</td>
                             <td>{item.quantity}</td>
-                            <td>{item.price}</td>
-                            <td>{item.vat_value}</td>
-                            <td>{item.total}</td>
+                            <td>{formatMoney(item.price)}</td>
+                            <td>{item.vat_value}%</td>
+                            <td>{formatMoney(item.total)}</td>
                             <td>{item.comment || "-"}</td>
                         </tr>
                     ))}

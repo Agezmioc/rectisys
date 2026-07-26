@@ -3,8 +3,7 @@ import { useData } from "../context/Context";
 import "./AccountSelector.css";
 
 const AccountSelector = ({ onConfirm, onCancel }) => {
-    const { dataAccounts } = useData();
-
+    const { dataAccounts, dataTaxPositions } = useData();
     const [searchInput, setSearchInput] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("name");
@@ -63,27 +62,37 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                         <tr>
                             <th>ID</th>
                             <th>Nombre</th>
+                            <th>Situación fiscal</th>
+                            <th>CUIT</th>
                             <th></th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        {filteredAccounts.map(account => (
-                            <tr key={account.id}>
-                                <td>{account.id}</td>
-                                <td>{account.name}</td>
+                        {filteredAccounts.map(account => {
+                            const taxPosition = dataTaxPositions.find(
+                                tp => tp.id === Number(account.tax_position_id)
+                            );
 
-                                <td>
-                                    <button
-                                        type="button"
-                                        className="account-selector-btn"
-                                        onClick={() => onConfirm(account)}
-                                    >
-                                        Seleccionar
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                            return (
+                                <tr key={account.id}>
+                                    <td>{account.id}</td>
+                                    <td>{account.name}</td>
+                                    <td>{taxPosition?.desc || "-"}</td>
+                                    <td>{account.tax_num || "-"}</td>
+
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className="account-selector-btn"
+                                            onClick={() => onConfirm(account)}
+                                        >
+                                            Seleccionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
