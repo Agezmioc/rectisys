@@ -2,6 +2,7 @@ import { useData } from "../context/Context";
 import { useState } from "react";
 import ArticleSelector from "./ArticleSelector";
 import "./EditSalesQuoteItemsList.css";
+import { isValidNumberInput } from "../utils/numberInput";
 
 const EditSalesQuoteItemsList = ({
     items,
@@ -44,8 +45,18 @@ const EditSalesQuoteItemsList = ({
         );
     };
 
+    const numericFields = [
+        "quantity"
+    ];
 
     const handleChange = (rowId, field, value) => {
+
+        if (numericFields.includes(field)) {
+            if (!isValidNumberInput(value, { decimals: 2 })) {
+                return;
+            }
+        }
+
         setItems(prev =>
             prev.map(item => {
                 if ((item.id ?? item.temp_id) !== rowId) return item;
@@ -185,6 +196,7 @@ const EditSalesQuoteItemsList = ({
                                             className="cell-input"
                                             type="number"
                                             min="1"
+                                            step="0.01"
                                             value={item.quantity}
                                             onChange={e =>
                                                 handleChange(
@@ -200,7 +212,7 @@ const EditSalesQuoteItemsList = ({
                                     <td>{item.vat_value}</td>
 
                                     <td className="bold">
-                                        {calculateItemTotal(item).toFixed(2)}
+                                        {formatMoney(calculateItemTotal(item))}
                                     </td>
 
                                     <td>

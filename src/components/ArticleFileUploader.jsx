@@ -16,6 +16,12 @@ const ArticleFileUploader = () => {
     const fileInputRef = useRef(null);
     const isBusy = isUploading || isProcessing;
 
+    const [progress, setProgress] = useState({
+        processed: 0,
+        total: 0,
+        percent: 0
+    });
+
     const handleFile = (e) => {
         if (isBusy) return;
 
@@ -117,10 +123,15 @@ const ArticleFileUploader = () => {
 
         setIsProcessing(true);
 
+        setProgress({
+            processed: 0,
+            total: 0,
+            percent: 0
+        });
+
         try {
 
-            const result =
-                await processTempArticles();
+            const result = await processTempArticles(setProgress);
 
             if (!result) return;
 
@@ -202,6 +213,20 @@ Actualizados: ${result.updated}`
                                 : "⚙ Process"
                     }
                 </button>
+
+                {isProcessing && (
+                    <div style={{ marginTop: "1rem" }}>
+                        <progress
+                            value={progress.percent}
+                            max="100"
+                            style={{ width: "100%" }}
+                        />
+
+                        <div style={{ marginTop: "0.5rem" }}>
+                            {progress.percent}% ({progress.processed} / {progress.total})
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

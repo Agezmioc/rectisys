@@ -1,0 +1,167 @@
+.data-account-detail {
+
+    min-height: 100vh;
+
+}
+
+
+/* HEADER */
+
+.data-account-detail-header {
+
+    padding: 0.75rem 1rem;
+
+    background: var(--color-surface);
+
+    border-bottom: 1px solid var(--color-border);
+
+}
+
+.data-account-detail-topbar {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 1rem;
+
+}
+
+.data-account-detail-actions {
+
+    display: flex;
+
+    gap: 0.5rem;
+
+}
+
+.data-account-detail-title {
+
+    margin: 0;
+
+    margin-top: 0.5rem;
+
+    font-size: 1.4rem;
+
+}
+
+
+/* BODY */
+
+.data-account-detail-body {
+
+    padding: 1rem;
+
+}
+
+
+/* GRID */
+
+.data-account-detail-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(280px, 1fr));
+
+    gap: 0.75rem;
+
+}
+
+
+/* CARDS */
+
+.data-account-card {
+
+    background: #f8f8f8;
+
+    border: 1px solid var(--color-border);
+
+    border-radius: 8px;
+
+    padding: 0.8rem;
+
+    font-size: 0.88rem;
+
+    line-height: 1.35;
+
+    display: flex;
+
+    flex-direction: column;
+
+}
+
+.data-account-card h3 {
+
+    margin: 0 0 0.75rem;
+
+}
+
+
+/* CAMPOS */
+
+.data-account-fields-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 0.75rem 1rem;
+
+}
+
+.data-account-field {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.2rem;
+
+}
+
+.data-account-field b {
+
+    font-size: 0.8rem;
+
+    font-weight: 600;
+
+    color: #555;
+
+}
+
+.data-account-field span {
+
+    word-break: break-word;
+
+}
+
+
+/* PANTALLAS PEQUEÑAS */
+
+@media (max-width: 600px) {
+
+    .data-account-fields-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+    .data-account-detail-topbar {
+
+        align-items: flex-start;
+
+    }
+
+    .data-account-detail-actions {
+
+        flex-wrap: wrap;
+
+        justify-content: flex-end;
+
+    }
+
+}

@@ -1,0 +1,185 @@
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.sales-order-manager {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* HEADER */
+.sales-order-manager-header {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sales-order-manager-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sales-order-manager-topbar h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.sales-order-manager-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* BODY = ZONA SCROLLEABLE REAL */
+.sales-order-manager-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* FORM ocupa todo el alto del body */
+#order-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* GRID */
+.sales-order-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+
+  align-items: stretch;
+}
+
+/* TOGGLE */
+.sales-order-manager-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: .75rem;
+    margin-top: .5rem;
+}
+
+.sales-order-manager-toggle::before,
+.sales-order-manager-toggle::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+.sales-order-manager-toggle button {
+    min-width: 40px;
+}
+
+/* ITEMS siempre visibles dentro del flujo */
+.sales-order-card {
+  background: #f8f8f8;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  padding: 0.8rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-order-card > div {
+  margin-bottom: 0.35rem;
+}
+
+.sales-order-card label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+  color: #333;
+}
+
+/* ITEMS SECTION */
+.sales-order-card:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-order-amounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.sales-order-amount {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.sales-order-amount label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.sales-order-amount span {
+    padding: 0.45rem 0;
+}
+
+.sales-order-amount input {
+    width: 100%;
+}
+
+.sales-order-card-content {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.sales-order-card-content > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sales-order-card-content input,
+.sales-order-card-content select,
+.sales-order-card-content textarea,
+.sales-order-card-content button {
+    width: 100%;
+}
+
+.sales-order-card-content textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.sales-order-card-full {
+    grid-column: 1 / -1;
+}
+
+.sales-order-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.sales-order-checkbox input {
+    width: auto;
+    margin: 0;
+}

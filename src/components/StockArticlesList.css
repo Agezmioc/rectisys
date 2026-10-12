@@ -1,0 +1,41 @@
+.stock-articles-list {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stock-articles-actions {
+  margin-bottom: 1rem;
+}
+
+.stock-articles-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stock-articles-input {
+  flex: 1;
+}
+
+.stock-articles-table-container {
+  overflow-x: auto;
+}
+
+.stock-articles-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stock-articles-table th,
+.stock-articles-table td {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.stock-articles-table th {
+  background-color: #f0f0f0;
+}

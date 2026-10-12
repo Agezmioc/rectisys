@@ -1,0 +1,66 @@
+.data-accounts-list {
+
+    background-color: var(--color-surface);
+
+    border: 1px solid var(--color-border);
+
+    border-radius: 8px;
+
+    padding: 1.5rem;
+
+    box-shadow: var(--shadow-sm);
+
+}
+
+.data-accounts-actions {
+
+    margin-bottom: 1rem;
+
+}
+
+.data-accounts-filters {
+
+    display: flex;
+
+    gap: 1rem;
+
+    margin-bottom: 1rem;
+
+}
+
+.data-accounts-input {
+
+    flex: 1;
+
+}
+
+.data-accounts-table-container {
+
+    overflow-x: auto;
+
+}
+
+.data-accounts-table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+}
+
+.data-accounts-table th,
+.data-accounts-table td {
+
+    padding: 0.75rem;
+
+    border: 1px solid var(--color-border);
+
+    text-align: left;
+
+}
+
+.data-accounts-table th {
+
+    background-color: #f0f0f0;
+
+}

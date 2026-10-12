@@ -24,6 +24,45 @@ const summaryRow = (label, value) => ({
     margin: [0, 2, 0, 2]
 });
 
+/*
+ * Calcula un ancho apropiado para una columna numérica
+ * según el valor más grande que aparezca en la tabla.
+ *
+ * Los límites evitan que una columna numérica crezca
+ * indefinidamente y destruya el espacio de Descripción.
+ */
+const getMoneyColumnWidth = (items, field) => {
+    const maxLength = Math.max(
+        0,
+        ...items.map(item =>
+            formatMoney(item[field]).length
+        )
+    );
+
+    const calculatedWidth = 32 + maxLength * 4.5;
+
+    return Math.min(
+        100,
+        Math.max(70, calculatedWidth)
+    );
+};
+
+const getQuantityColumnWidth = (items) => {
+    const maxLength = Math.max(
+        0,
+        ...items.map(item =>
+            String(item.quantity ?? "").length
+        )
+    );
+
+    const calculatedWidth = 25 + maxLength * 5;
+
+    return Math.min(
+        55,
+        Math.max(40, calculatedWidth)
+    );
+};
+
 export const buildSalesQuotePdf = ({
     quote,
     items,
@@ -33,41 +72,145 @@ export const buildSalesQuotePdf = ({
     taxPosition,
     showPrices,
 }) => {
+
+    /*
+     * -----------------------------------------
+     * ANCHOS DINÁMICOS DE LA TABLA
+     * -----------------------------------------
+     */
+
+    const quantityWidth = getQuantityColumnWidth(items);
+
+    const priceWidth = getMoneyColumnWidth(
+        items,
+        "price"
+    );
+
+    const totalWidth = getMoneyColumnWidth(
+        items,
+        "total"
+    );
+
+    /*
+     * Código mantiene un ancho razonable.
+     * Descripción utiliza "*" para ocupar
+     * automáticamente todo el espacio restante.
+     */
+    const tableWidths = showPrices
+        ? [
+            20,             // #
+            80,             // Código
+            "*",            // Descripción
+            quantityWidth,  // Cant.
+            priceWidth,     // Precio
+            40,             // IVA
+            totalWidth      // Total
+        ]
+        : [
+            20,             // #
+            80,             // Código
+            "*",            // Descripción
+            quantityWidth   // Cant.
+        ];
+
+    /*
+     * -----------------------------------------
+     * CUERPO DE LA TABLA
+     * -----------------------------------------
+     */
+
     const tableBody = [
         showPrices
             ? [
-                { text: "#", alignment: "center", bold: true },
-                { text: "Código", bold: true },
-                { text: "Descripción", bold: true },
-                { text: "Cant.", alignment: "right", bold: true },
-                { text: "Precio", alignment: "right", bold: true },
-                { text: "IVA", alignment: "right", bold: true },
-                { text: "Total", alignment: "right", bold: true }
+                {
+                    text: "#",
+                    alignment: "center",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Código",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Descripción",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Cant.",
+                    alignment: "right",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Precio",
+                    alignment: "right",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "IVA",
+                    alignment: "right",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Total",
+                    alignment: "right",
+                    bold: true,
+                    fontSize: 9
+                }
             ]
             : [
-                { text: "#", alignment: "center", bold: true },
-                { text: "Código", bold: true },
-                { text: "Descripción", bold: true },
-                { text: "Cant.", alignment: "right", bold: true }
+                {
+                    text: "#",
+                    alignment: "center",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Código",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Descripción",
+                    bold: true,
+                    fontSize: 9
+                },
+                {
+                    text: "Cant.",
+                    alignment: "right",
+                    bold: true,
+                    fontSize: 9
+                }
             ]
     ];
 
     items.forEach((item, index) => {
 
+        const quantity = item.quantity ?? 0;
+
         const row = [
             {
                 text: String(index + 1),
-                alignment: "center"
+                alignment: "center",
+                fontSize: 9
             },
             {
-                text: item.stock_articles?.code || "-"
+                text: item.stock_articles?.code || "-",
+                fontSize: 9
             },
             {
-                text: item.stock_articles?.desc || "-"
+                text: item.stock_articles?.desc || "-",
+                fontSize: 9
             },
             {
-                text: item.quantity.toString(),
-                alignment: "right"
+                text: String(quantity),
+                alignment: "right",
+                fontSize: 9
             },
         ];
 
@@ -75,16 +218,19 @@ export const buildSalesQuotePdf = ({
             row.push(
                 {
                     text: formatMoney(item.price),
-                    alignment: "right"
+                    alignment: "right",
+                    fontSize: 9
                 },
                 {
                     text: `${item.vat_value}%`,
-                    alignment: "center"
+                    alignment: "center",
+                    fontSize: 9
                 },
                 {
                     text: formatMoney(item.total),
                     alignment: "right",
-                    bold: true
+                    bold: true,
+                    fontSize: 9
                 }
             );
         }
@@ -92,39 +238,50 @@ export const buildSalesQuotePdf = ({
         tableBody.push(row);
     });
 
+    /*
+     * -----------------------------------------
+     * DEFINICIÓN DEL PDF
+     * -----------------------------------------
+     */
+
     const docDefinition = {
 
         pageSize: "A4",
 
-        pageMargins: [30,30,30,30],
+        pageMargins: [30, 60, 30, 60],
+
+        header: (currentPage, pageCount) => ({
+            columns: [
+                {
+                    width: "85%",
+                    text: "¡ESTE COMPROBANTE NO ES VÁLIDO COMO FACTURA!",
+                    bold: true,
+                    fontSize: 16
+                },
+                {
+                    width: "15%",
+                    text: `Página ${currentPage} de ${pageCount}`,
+                    alignment: "right",
+                    fontSize: 9
+                }
+            ],
+            margin: [30, 20, 30, 0]
+        }),
+
+        footer: {
+            text: "LOS PRECIOS ESTÁN SUJETOS A VARIACIÓN SIN PREVIO AVISO.",
+            bold: true,
+            fontSize: 16,
+            margin: [30, 0, 30, 20]
+        },
 
         content: [
-            {
-                text: "¡ESTE COMPROBANTE NO ES VÁLIDO COMO FACTURA!",
-                bold: true,
-                fontSize: 13
-            },
-
-            {
-                canvas: [
-                    {
-                        type: "line",
-                        x1: 0,
-                        y1: 0,
-                        x2: 535,
-                        y2: 0,
-                        lineWidth: 0.8,
-                        lineColor: "#999999"
-                    }
-                ],
-                margin: [0, 15, 0, 15]
-            },
 
             {
                 text: "RECTISUR S.R.L.",
                 bold: true,
                 fontSize: 18,
-                alignment: 'center'
+                alignment: "center"
             },
 
             {
@@ -147,7 +304,7 @@ export const buildSalesQuotePdf = ({
 
                     {
                         text:
-                            `Presupuesto ${quote.letter}-${String(quote.point).padStart(4,"0")}-${String(quote.number).padStart(8,"0")}`,
+                            `Presupuesto ${quote.letter}-${String(quote.point).padStart(4, "0")}-${String(quote.number).padStart(8, "0")}`,
                         bold: true,
                         fontSize: 18
                     },
@@ -161,7 +318,12 @@ export const buildSalesQuotePdf = ({
                 ]
             },
 
-            // acá irán las tarjetas del cliente
+            /*
+             * -----------------------------------------
+             * DATOS DEL CLIENTE
+             * -----------------------------------------
+             */
+
             {
                 margin: [0, 15, 0, 15],
 
@@ -289,36 +451,62 @@ export const buildSalesQuotePdf = ({
                 columnGap: 20
             },
 
-            // acá irá la tabla
+            /*
+             * -----------------------------------------
+             * TABLA
+             * -----------------------------------------
+             */
+
             {
                 table: {
                     headerRows: 1,
-                    widths: showPrices
-                        ? [20, 95, "*", 35, 65, 35, 70]
-                        : [20, 95, "*", 35],
+
+                    /*
+                     * Los anchos de Precio, Total y Cantidad
+                     * se calculan según los valores reales.
+                     *
+                     * Descripción sigue siendo flexible.
+                     */
+                    widths: tableWidths,
+
                     body: tableBody
                 },
 
                 layout: {
+
                     fillColor: function (rowIndex) {
-                        return rowIndex === 0 ? "#eeeeee" : null;
+                        return rowIndex === 0
+                            ? "#eeeeee"
+                            : null;
                     },
 
                     hLineWidth: () => 0.5,
+
                     vLineWidth: () => 0.5,
 
                     hLineColor: () => "#cccccc",
+
                     vLineColor: () => "#cccccc",
 
                     paddingLeft: () => 4,
+
                     paddingRight: () => 4,
+
                     paddingTop: () => 3,
+
                     paddingBottom: () => 3
                 }
             },
 
-            // acá el resumen
+            /*
+             * -----------------------------------------
+             * RESUMEN
+             * -----------------------------------------
+             */
+
             {
+                unbreakable: true,
+
                 margin: [0, 15, 0, 0],
 
                 stack: [
@@ -326,33 +514,51 @@ export const buildSalesQuotePdf = ({
                     {
                         columns: [
                             {},
+
                             {
                                 width: 300,
 
                                 stack: [
 
-                                    summaryRow("Subtotal conceptos", quote.concept_subtotal),
+                                    summaryRow(
+                                        "Subtotal conceptos",
+                                        quote.concept_subtotal
+                                    ),
 
                                     summaryRow(
                                         `Desc. conceptos (${quote.concept_discount || 0}%)`,
-                                        -(quote.concept_subtotal || 0) * (quote.concept_discount || 0) / 100
+                                        -(quote.concept_subtotal || 0) *
+                                        (quote.concept_discount || 0) /
+                                        100
                                     ),
 
-                                    summaryRow("Subtotal artículos", quote.article_subtotal),
+                                    summaryRow(
+                                        "Subtotal artículos",
+                                        quote.article_subtotal
+                                    ),
 
                                     summaryRow(
                                         `Desc. artículos (${quote.article_discount || 0}%)`,
-                                        -(quote.article_subtotal || 0) * (quote.article_discount || 0) / 100
+                                        -(quote.article_subtotal || 0) *
+                                        (quote.article_discount || 0) /
+                                        100
                                     ),
 
                                     summaryRow(
                                         `Desc. general (${quote.general_discount || 0}%)`,
                                         -(
                                             (
-                                                (quote.article_subtotal || 0) * (quote.article_discount || 0) / 100 +
-                                                (quote.concept_subtotal || 0) * (quote.concept_discount || 0) / 100
+                                                (quote.article_subtotal || 0) +
+                                                (quote.article_subtotal || 0) *
+                                                (quote.article_discount || 0) /
+                                                100 +
+                                                (quote.concept_subtotal || 0) +
+                                                (quote.concept_subtotal || 0) *
+                                                (quote.concept_discount || 0) /
+                                                100
                                             ) *
-                                            (quote.general_discount || 0) / 100
+                                            (quote.general_discount || 0) /
+                                            100
                                         )
                                     ),
 
@@ -360,10 +566,15 @@ export const buildSalesQuotePdf = ({
                                         `Recargo general (${quote.general_recharge || 0}%)`,
                                         (
                                             (
-                                                (quote.article_subtotal || 0) * (quote.article_discount || 0) / 100 +
-                                                (quote.concept_subtotal || 0) * (quote.concept_discount || 0) / 100
+                                                (quote.article_subtotal || 0) *
+                                                (quote.article_discount || 0) /
+                                                100 +
+                                                (quote.concept_subtotal || 0) *
+                                                (quote.concept_discount || 0) /
+                                                100
                                             ) *
-                                            (quote.general_recharge || 0) / 100
+                                            (quote.general_recharge || 0) /
+                                            100
                                         )
                                     ),
 
@@ -382,10 +593,16 @@ export const buildSalesQuotePdf = ({
                                         margin: [0, 8, 0, 8]
                                     },
 
-                                    summaryRow("Subtotal General", quote.general_subtotal),
+                                    summaryRow(
+                                        "Subtotal General",
+                                        quote.general_subtotal
+                                    ),
 
                                     quote.general_vat > 0
-                                        ? summaryRow("IVA", quote.general_vat)
+                                        ? summaryRow(
+                                            "IVA",
+                                            quote.general_vat
+                                        )
                                         : {},
 
                                     {
@@ -413,7 +630,9 @@ export const buildSalesQuotePdf = ({
                                             },
 
                                             {
-                                                text: "$ " + formatMoney(quote.total),
+                                                text:
+                                                    "$ " +
+                                                    formatMoney(quote.total),
                                                 bold: true,
                                                 fontSize: 14,
                                                 alignment: "right"
@@ -430,65 +649,40 @@ export const buildSalesQuotePdf = ({
                 ]
             },
 
+            /*
+             * -----------------------------------------
+             * OBSERVACIONES / LEYENDAS
+             * -----------------------------------------
+             */
+
             {
-                canvas: [
+                unbreakable: true,
+
+                stack: [
                     {
-                        type: "line",
-                        x1: 0,
-                        y1: 0,
-                        x2: 535,
-                        y2: 0,
-                        lineWidth: 0.8,
-                        lineColor: "#999999"
-                    }
-                ],
-                margin: [0, 15, 0, 15]
-            },
-
-            {
-                text: "LOS PRECIOS ESTÁN SUJETOS A VARIACIÓN SIN PREVIO AVISO.",
-                bold: true,
-                fontSize: 13
-            },
-
-            {
-                canvas: [
+                        canvas: [
+                            {
+                                type: "line",
+                                x1: 0,
+                                y1: 0,
+                                x2: 535,
+                                y2: 0,
+                                lineWidth: 0.8,
+                                lineColor: "#999999"
+                            }
+                        ],
+                        margin: [0, 15, 0, 15]
+                    },
                     {
-                        type: "line",
-                        x1: 0,
-                        y1: 0,
-                        x2: 535,
-                        y2: 0,
-                        lineWidth: 0.8,
-                        lineColor: "#999999"
+                        text:
+                            "TODO REPUESTO A COLOCAR O TRABAJO A REALIZAR QUE NO FIGURE EN EL PRESENTE PRESUPUESTO, SE COBRARA POR SEPARADO.",
+                        bold: true,
+                        fontSize: 13
                     }
-                ],
-                margin: [0, 15, 0, 15]
-            },
-
-            {
-                text: "TODO REPUESTO A COLOCAR O TRABAJO A REALIZAR QUE NO FIGURE EN EL PRESENTE PRESUPUESTO, SE COBRARA POR SEPARADO.",
-                bold: true,
-                fontSize: 13
-            },
-
-            {
-                canvas: [
-                    {
-                        type: "line",
-                        x1: 0,
-                        y1: 0,
-                        x2: 535,
-                        y2: 0,
-                        lineWidth: 0.8,
-                        lineColor: "#999999"
-                    }
-                ],
-                margin: [0, 15, 0, 15]
-            },
+                ]
+            }
 
         ]
-
     };
 
     pdfMake.createPdf(docDefinition).download(

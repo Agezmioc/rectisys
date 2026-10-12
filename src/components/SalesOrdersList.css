@@ -1,0 +1,41 @@
+.sales-orders-list {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.sales-orders-actions {
+  margin-bottom: 1rem;
+}
+
+.sales-orders-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sales-orders-input {
+  flex: 1;
+}
+
+.sales-orders-table-container {
+  overflow-x: auto;
+}
+
+.sales-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sales-orders-table th,
+.sales-orders-table td {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.sales-orders-table th {
+  background-color: #f0f0f0;
+}

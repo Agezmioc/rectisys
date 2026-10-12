@@ -1,12 +1,24 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useData } from "../context/Context";
 import EditSalesQuoteItemsList from "./EditSalesQuoteItemsList";
 import AccountSelector from "./AccountSelector";
 import MotorSelector from "./MotorSelector";
 import "./SalesQuoteManager.css";
+import { isValidNumberInput } from "../utils/numberInput";
+
+const getLocalDate = () => {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
 
 const SalesQuoteManager = ({
     initialQuote = null,
+    isDuplicate = false,
     onCancel,
     onSaved
 }) => {
@@ -24,11 +36,13 @@ const SalesQuoteManager = ({
         getDataTaxPositions,
         getStockMotors,
         getSalesQuoteItems,
+        getStockArticles,
         stockLists,
     } = useData();
-    
+
     const [showAccountSelector, setShowAccountSelector] = useState(false);
     const [showMotorSelector, setShowMotorSelector] = useState(false);
+    const [showDetails, setShowDetails] = useState(true);
     const DOCUMENT_TYPE = "presupuesto";
 
     const documentId = useMemo(() => {
@@ -37,6 +51,11 @@ const SalesQuoteManager = ({
         )?.id ?? null;
     }, [dataDocuments]);
 
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
 
     const emptyQuote = {
         account_id: "",
@@ -44,8 +63,12 @@ const SalesQuoteManager = ({
         data_tax_position_id: "",
         motor_id: "",
 
-        address: "",
+        name: "",
+        email: "",
         phone_num: "",
+
+        address: "",
+        district: "",
 
         tax_num: "",
 
@@ -54,7 +77,7 @@ const SalesQuoteManager = ({
         list: "",
         observations: "",
 
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDate(),
 
         letter: "",
         point: "",
@@ -80,9 +103,12 @@ const SalesQuoteManager = ({
             ...emptyQuote,
             ...initialQuote,
 
-            date: initialQuote.date
-                ? String(initialQuote.date).slice(0, 10)
-                : emptyQuote.date,
+            // La copia comienza con la fecha actual.
+            date: isDuplicate
+                ? getLocalDate()
+                : initialQuote.date
+                    ? String(initialQuote.date).slice(0, 10)
+                    : getLocalDate(),
 
             is_model:
                 initialQuote.is_model === 1 ||
@@ -91,6 +117,14 @@ const SalesQuoteManager = ({
     });
 
     const [items, setItems] = useState([]);
+
+    const previousMotorId = useRef(
+        initialQuote?.motor_id
+            ? Number(initialQuote.motor_id)
+            : null
+    );
+
+    const duplicatePricesUpdated = useRef(false);
 
     const motorId = Number(quote.motor_id);
 
@@ -106,17 +140,55 @@ const SalesQuoteManager = ({
 
     const isConsumerFinalAccount = Number(quote.account_id) === 1;
 
+    const integerFields = [
+        "data_condition_type_id",
+        "data_tax_position_id",
+        "motor_id",
+        "point",
+        "number"
+    ];
+
+    const decimalFields = [
+        "concept_discount",
+        "article_discount",
+        "general_discount",
+        "general_recharge"
+    ];
+
     const handleQuoteChange = (e) => {
         const { name, value, type, checked } = e.target;
 
+        if (type === "checkbox") {
+            setQuote(prev => ({
+                ...prev,
+                [name]: checked
+            }));
+            return;
+        }
+
+        if (integerFields.includes(name)) {
+            if (!isValidNumberInput(value, { decimals: 0 })) {
+                return;
+            }
+        }
+
+        if (decimalFields.includes(name)) {
+            if (!isValidNumberInput(value, { decimals: 2 })) {
+                return;
+            }
+        }
+
         setQuote(prev => ({
             ...prev,
-            [name]: type === "checkbox" ? checked : value
+            [name]: value
         }));
     };
 
     const handleSubmit = async (e) => {
+
         e.preventDefault();
+
+        const now = new Date().toISOString();
 
         const quoteData = {
             account_id: quote.account_id ? Number(quote.account_id) : null,
@@ -125,8 +197,12 @@ const SalesQuoteManager = ({
             data_tax_position_id: quote.data_tax_position_id ? Number(quote.data_tax_position_id) : null,
             motor_id: quote.motor_id ? Number(quote.motor_id) : null,
 
-            address: quote.address,
+            name: quote.name,
+            email: quote.email,
             phone_num: quote.phone_num,
+            address: quote.address,
+            district: quote.district,
+
             reference: quote.reference,
             purchace_order_num: quote.purchace_order_num,
             list: listObj?.desc || "Sin lista",
@@ -152,12 +228,44 @@ const SalesQuoteManager = ({
 
             general_vat: vatAmount,
 
-            tax_num: quote.tax_num
+            tax_num: quote.tax_num,
+
+            created_at:
+                initialQuote && !isDuplicate
+                    ? initialQuote.created_at || now
+                    : now,
+            updated_at: now,
+
+            sales_state_id: 3
         };
 
-        const saved = initialQuote
-            ? await updateSalesQuote(initialQuote.id, quoteData, items)
-            : await createSalesQuote(quoteData, items);
+        const itemsToSave = items.map(item => {
+            const quantity = Number(item.quantity) || 0;
+            const price = Number(item.price) || 0;
+            const vat = Number(item.vat_value ?? item.vat ?? 0);
+
+            const base = quantity * price;
+
+            const itemTotal = isConsumerFinal
+                ? base * (1 + vat / 100)
+                : base;
+
+            return {
+                ...item,
+                total: itemTotal
+            };
+        });
+
+        const saved = initialQuote && !isDuplicate
+            ? await updateSalesQuote(
+                initialQuote.id,
+                quoteData,
+                itemsToSave
+            )
+            : await createSalesQuote(
+                quoteData,
+                itemsToSave
+            );
 
         if (!saved) return;
 
@@ -206,6 +314,155 @@ const SalesQuoteManager = ({
 
         loadItems();
     }, [quote?.id]);
+
+    const priceUpdateRequest = useRef(0);
+
+    useEffect(() => {
+        const requestRef = priceUpdateRequest;
+
+        return () => {
+            requestRef.current++;
+        };
+    }, []);
+
+    useEffect(() => {
+        const updateItemPrices = async () => {
+            const currentMotor = quote.motor_id
+                ? Number(quote.motor_id)
+                : null;
+
+            if (!currentMotor) {
+                previousMotorId.current = null;
+                return;
+            }
+
+            if (!listId || !items.length) {
+                return;
+            }
+
+            const motorChanged =
+                previousMotorId.current !== currentMotor;
+
+            const shouldUpdateDuplicate =
+                isDuplicate && !duplicatePricesUpdated.current;
+
+            // En una edición normal, solo actualizamos si cambió el motor.
+            // Al duplicar, actualizamos también los precios iniciales.
+            if (!motorChanged && !shouldUpdateDuplicate) {
+                return;
+            }
+
+            const articleIds = [
+                ...new Set(
+                    items
+                        .map(item => item.stock_art_id)
+                        .filter(
+                            id =>
+                                id !== null &&
+                                id !== undefined &&
+                                id !== ""
+                        )
+                        .map(Number)
+                )
+            ];
+
+            // Evitamos repetir el intento si no hay artículos asociados.
+            if (!articleIds.length) {
+                previousMotorId.current = currentMotor;
+
+                if (isDuplicate) {
+                    duplicatePricesUpdated.current = true;
+                }
+
+                return;
+            }
+
+            // Registramos el cambio antes de iniciar la consulta.
+            previousMotorId.current = currentMotor;
+
+            if (isDuplicate) {
+                duplicatePricesUpdated.current = true;
+            }
+
+            const requestId = ++priceUpdateRequest.current;
+
+            try {
+                const articles = await getStockArticles({ articleIds });
+
+                if (requestId !== priceUpdateRequest.current) {
+                    return;
+                }
+
+                const articlesMap = new Map(
+                    articles.map(article => [
+                        Number(article.id),
+                        article
+                    ])
+                );
+
+                const taxPosition = dataTaxPositions.find(
+                    t => t.id === Number(quote.data_tax_position_id)
+                );
+
+                const consumerFinal = !!taxPosition?.vat_included;
+
+                setItems(prev =>
+                    prev.map(item => {
+                        const article = articlesMap.get(
+                            Number(item.stock_art_id)
+                        );
+
+                        if (!article) return item;
+
+                        const prices = article.prices || [];
+
+                        const price =
+                            prices.find(
+                                p => Number(p.list_id) === Number(listId)
+                            )?.price ??
+                            prices.find(
+                                p => Number(p.list_id) === 0
+                            )?.price ??
+                            0;
+
+                        const newPrice = Number(price);
+                        const quantity = Number(item.quantity) || 0;
+                        const vat = Number(item.vat_value ?? item.vat ?? 0);
+                        const base = quantity * newPrice;
+                        const newTotal = consumerFinal
+                            ? base * (1 + vat / 100)
+                            : base;
+
+                        return {
+                            ...item,
+                            price: newPrice,
+                            total: newTotal
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error(
+                    "Error al actualizar los precios de los ítems:",
+                    error
+                );
+
+                // Permitimos reintentar la actualización de la copia.
+                if (isDuplicate) {
+                    duplicatePricesUpdated.current = false;
+                }
+            }
+        };
+
+        updateItemPrices();
+    }, [
+        isDuplicate,
+        quote.motor_id,
+        quote.data_tax_position_id,
+        listId,
+        items,
+        getStockArticles,
+        dataTaxPositions
+    ]);
 
     const {
         conceptSubtotal,
@@ -292,9 +549,15 @@ const SalesQuoteManager = ({
     return (
         <AccountSelector
             onConfirm={(account) => {
+                const isConsumerFinal = Number(account.id) === 1;
+
                 setQuote(prev => ({
                     ...prev,
                     account_id: account.id,
+
+                    name: isConsumerFinal ? "" : account.name || "",
+                    email: isConsumerFinal ? "" : account.email || "",
+                    district: isConsumerFinal ? "" : account.district || "",
 
                     address: account.address || "",
                     phone_num: account.phone_num || "",
@@ -328,19 +591,20 @@ const SalesQuoteManager = ({
     return (
         <div className="sales-quote-manager">
 
+
             {/* HEADER */}
             <header className="sales-quote-manager-header">
 
                 <div className="sales-quote-manager-topbar">
                     <h2>
-                        {initialQuote
+                        {initialQuote && !isDuplicate
                             ? `Editar Presupuesto #${initialQuote.id}`
                             : "Nuevo Presupuesto"}
                     </h2>
 
                     <div className="sales-quote-manager-actions">
                         <button type="submit" form="quote-form">
-                            {initialQuote ? "Actualizar" : "Guardar"}
+                            {initialQuote && !isDuplicate ? "Actualizar" : "Guardar"}
                         </button>
                         <button type="button" onClick={onCancel}>
                             Cancelar
@@ -355,229 +619,325 @@ const SalesQuoteManager = ({
                 <form id="quote-form" onSubmit={handleSubmit}>
 
                     {/* SECCIÓN: PRINCIPALES */}
-                    <section className="sales-quote-card-grid">
-                        <div className="sales-quote-card">
-                            <div className="sales-quote-card-content">
-                                <label>
-                                    {document?.desc || "Presupuesto"}
-
-                                    {initialQuote && (
-                                        <>
-                                            {" "}
-                                            {`${quote.letter}-${String(quote.point).padStart(4, "0")}-${String(quote.number).padStart(8, "0")}`}
-                                        </>
-                                    )}
-                                </label>
-
-                                <div>
+                    {showDetails && (
+                        <section className="sales-quote-card-grid">
+                            <div className="sales-quote-card">
+                                <div className="sales-quote-card-content">
                                     <label>
-                                        Fecha: {
-                                            quote.date
-                                                ? new Date(quote.date).toLocaleDateString("es-AR")
-                                                : ""
-                                        }
+                                        {document?.desc || "Presupuesto"}
+
+                                        {initialQuote && !isDuplicate && (
+                                            <>
+                                                {" "}
+                                                {`${quote.letter}-${String(quote.point).padStart(4, "0")}-${String(quote.number).padStart(8, "0")}`}
+                                            </>
+                                        )}
                                     </label>
-                                </div>
 
-                                <div>
-                                    <label>Cliente: {
-                                        quote.account_id && (
-                                            dataAccounts.find(
-                                                acc => acc.id === Number(quote.account_id)
-                                            )?.name
-                                    )}</label>
+                                    <div>
+                                        <label>
+                                            Fecha:
+                                            {
+                                                quote.date
+                                                    ? new Date(`${String(quote.date).slice(0, 10)}T12:00:00`)
+                                                        .toLocaleDateString("es-AR")
+                                                    : ""
+                                            }
+                                        </label>
+                                    </div>
 
-                                    <button type="button" onClick={() => setShowAccountSelector(true)}>
-                                        Seleccionar cliente
-                                    </button>
+                                    <div>
+                                        <label>Cliente: {
+                                            quote.account_id && (
+                                                dataAccounts.find(
+                                                    acc => acc.id === Number(quote.account_id)
+                                                )?.name
+                                        )}</label>
+
+                                        <button type="button" onClick={() => setShowAccountSelector(true)}>
+                                            Seleccionar cliente
+                                        </button>
+                                    </div>
+
+                                    <div className="sales-quote-checkbox">
+                                        <label>
+                                            Es modelo{" "}
+                                            <input
+                                                type="checkbox"
+                                                name="is_model"
+                                                checked={quote.is_model}
+                                                onChange={handleQuoteChange}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label>Motor: {
+                                            quote.motor_id && (
+                                                stockMotors.find(
+                                                    m => m.id === Number(quote.motor_id)
+                                                )?.desc
+                                        )}</label>
+                                        <button type="button" onClick={() => setShowMotorSelector(true)}>
+                                            Seleccionar motor
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <label>Lista: {listObj?.id || "Sin lista"}</label>
+                                    </div>
                                 </div>
-                                
-                                <div className="sales-quote-checkbox">
-                                    <label>
-                                        Es modelo{" "}
+                            </div>
+
+                            {/* COMERCIAL */}
+                            <div className="sales-quote-card">
+                                <div className="sales-quote-card-content">
+                                    <div>
+                                        <label>Nombre</label>
                                         <input
-                                            type="checkbox"
-                                            name="is_model"
-                                            checked={quote.is_model}
+                                            name="name"
+                                            value={quote.name || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>Email</label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={quote.email || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>Condición fiscal</label>
+                                        <input
+                                            value={
+                                                dataTaxPositions.find(
+                                                    t => t.id === Number(quote.data_tax_position_id)
+                                                )?.desc || ""
+                                            }
+                                            readOnly
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>C.U.I.T.</label>
+                                        <input
+                                            name="tax_num"
+                                            value={quote.tax_num || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>Dirección</label>
+                                        <input
+                                            name="address"
+                                            value={quote.address || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>Barrio</label>
+                                        <input
+                                            name="district"
+                                            value={quote.district || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label>Teléfono</label>
+                                        <input
+                                            name="phone_num"
+                                            value={quote.phone_num || ""}
+                                            onChange={handleQuoteChange}
+                                            readOnly={!isConsumerFinalAccount}
+                                        />
+                                    </div>
+
+
+                                    {renderSelect(
+                                        "data_condition_type_id",
+                                        "Condición",
+                                        quote.data_condition_type_id,
+                                        dataConditionsTypes,
+                                        "desc"
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* REFERENCIAS */}
+                            <div className="sales-quote-card">
+                                <div className="sales-quote-card-content">
+                                    <div>
+                                        <label>Referencia</label>
+                                        <input name="reference" value={quote.reference} onChange={handleQuoteChange} />
+                                    </div>
+
+                                    <div>
+                                        <label>Orden de compra</label>
+                                        <input name="purchace_order_num" value={quote.purchace_order_num} onChange={handleQuoteChange} />
+                                    </div>
+
+                                    <div className="sales-quote-card-full">
+                                        <label>Observaciones</label>
+                                        <textarea
+                                            name="observations"
+                                            value={quote.observations}
                                             onChange={handleQuoteChange}
                                         />
-                                    </label>
-                                </div>
-
-                                <div>
-                                    <label>Motor: {
-                                        quote.motor_id && (
-                                            stockMotors.find(
-                                                m => m.id === Number(quote.motor_id)
-                                            )?.desc
-                                    )}</label>
-                                    <button type="button" onClick={() => setShowMotorSelector(true)}>
-                                        Seleccionar motor
-                                    </button>
-                                </div>
-
-                                <div>
-                                    <label>Lista: {listObj?.id || "Sin lista"}</label>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* COMERCIAL */}
-                        <div className="sales-quote-card">
-                            <div className="sales-quote-card-content">
-                                <div>
-                                    <label>Condición fiscal</label>
-                                    <input
-                                        value={
-                                            dataTaxPositions.find(
-                                                t => t.id === Number(quote.data_tax_position_id)
-                                            )?.desc || ""
-                                        }
-                                        readOnly
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>C.U.I.T.</label>
-                                    <input
-                                        name="tax_num"
-                                        value={quote.tax_num || ""}
-                                        onChange={handleQuoteChange}
-                                        readOnly={!isConsumerFinalAccount}
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label>Dirección</label>
-                                    <input
-                                        name="address"
-                                        value={quote.address || ""}
-                                        onChange={handleQuoteChange}
-                                        readOnly={!isConsumerFinalAccount}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>Teléfono</label>
-                                    <input
-                                        name="phone_num"
-                                        value={quote.phone_num || ""}
-                                        onChange={handleQuoteChange}
-                                        readOnly={!isConsumerFinalAccount}
-                                    />
-                                </div>
-
-
-                                {renderSelect(
-                                    "data_condition_type_id",
-                                    "Condición",
-                                    quote.data_condition_type_id,
-                                    dataConditionsTypes,
-                                    "desc"
-                                )}
-                            </div>
-                        </div>
-
-                        {/* REFERENCIAS */}
-                        <div className="sales-quote-card">
-                            <div className="sales-quote-card-content">
-                                <div>
-                                    <label>Referencia</label>
-                                    <input name="reference" value={quote.reference} onChange={handleQuoteChange} />
-                                </div>
-
-                                <div>
-                                    <label>Orden de compra</label>
-                                    <input name="purchace_order_num" value={quote.purchace_order_num} onChange={handleQuoteChange} />
-                                </div>
-
-                                <div className="sales-quote-card-full">
-                                    <label>Observaciones</label>
-                                    <textarea
-                                        name="observations"
-                                        value={quote.observations}
-                                        onChange={handleQuoteChange}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                        </section>
+                    )}
 
                     {/* IMPORTES */}
                     <section>
                         <div className="sales-quote-card">
                             <div className="sales-quote-amounts-grid">
+                                {showDetails && (
+                                    <>
+                                        <div className="sales-quote-amount">
+                                            <label>Descuento Artículos (%)</label>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                name="article_discount"
+                                                min="0"
+                                                step="0.01"
+                                                value={quote.article_discount}
+                                                onChange={handleQuoteChange}
+                                            />
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Descuento Conceptos (%)</label>
-                                    <input
-                                        type="number"
-                                        name="concept_discount"
-                                        value={quote.concept_discount}
-                                        onChange={handleQuoteChange}
-                                    />
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Subtotal Artículos</label>
+                                            <span>{formatMoney(articleSubtotal)}</span>
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Subtotal Conceptos</label>
-                                    <span>{conceptSubtotal.toFixed(2)}</span>
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Descuento Conceptos (%)</label>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                name="concept_discount"
+                                                min="0"
+                                                step="0.01"
+                                                value={quote.concept_discount}
+                                                onChange={handleQuoteChange}
+                                            />
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Descuento Artículos (%)</label>
-                                    <input
-                                        type="number"
-                                        name="article_discount"
-                                        value={quote.article_discount}
-                                        onChange={handleQuoteChange}
-                                    />
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Subtotal Conceptos</label>
+                                            <span>{formatMoney(conceptSubtotal)}</span>
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Subtotal Artículos</label>
-                                    <span>{articleSubtotal.toFixed(2)}</span>
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Descuento General (%)</label>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                name="general_discount"
+                                                min="0"
+                                                step="0.01"
+                                                value={quote.general_discount}
+                                                onChange={handleQuoteChange}
+                                            />
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Descuento General (%)</label>
-                                    <input
-                                        type="number"
-                                        name="general_discount"
-                                        value={quote.general_discount}
-                                        onChange={handleQuoteChange}
-                                    />
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Recargo General (%)</label>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                name="general_recharge"
+                                                min="0"
+                                                step="0.01"
+                                                value={quote.general_recharge}
+                                                onChange={handleQuoteChange}
+                                            />
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Recargo General (%)</label>
-                                    <input
-                                        type="number"
-                                        name="general_recharge"
-                                        value={quote.general_recharge}
-                                        onChange={handleQuoteChange}
-                                    />
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>Subtotal General</label>
+                                            <span>{formatMoney(generalSubtotal)}</span>
+                                        </div>
 
-                                <div className="sales-quote-amount">
-                                    <label>Subtotal General</label>
-                                    <span>{generalSubtotal.toFixed(2)}</span>
-                                </div>
+                                        <div className="sales-quote-amount">
+                                            <label>IVA</label>
+                                            <span>{formatMoney(vatAmount)}</span>
+                                        </div>
 
-                                {!isConsumerFinal && (
-                                    <div className="sales-quote-amount">
-                                        <label>IVA</label>
-                                        <span>{vatAmount.toFixed(2)}</span>
-                                    </div>
+                                        <div className="sales-quote-amount">
+                                            <label><b>Total</b></label>
+                                            <span><b>{formatMoney(total)}</b></span>
+                                        </div>
+                                    </>
                                 )}
 
-                                <div className="sales-quote-amount">
-                                    <label><b>Total</b></label>
-                                    <span><b>{total.toFixed(2)}</b></span>
-                                </div>
+                                {!showDetails && (
+                                    <>
+                                        <div>
+                                            <label>
+                                                <b>
+                                                    {initialQuote && !isDuplicate
+                                                        ? `Presupuesto ${quote.letter}-${String(quote.point).padStart(4, "0")}-${String(quote.number).padStart(8, "0")}`
+                                                        : "Nuevo Presupuesto"}
+                                                </b>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label>
+                                                <b>Fecha:</b>
+                                                {
+                                                    quote.date
+                                                        ? new Date(`${String(quote.date).slice(0, 10)}T12:00:00`)
+                                                            .toLocaleDateString("es-AR")
+                                                        : ""
+                                                }
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label>
+                                                    <b>Cliente:</b> {
+                                                        quote.account_id && (
+                                                            dataAccounts.find(
+                                                                acc => acc.id === Number(quote.account_id)
+                                                            )?.name
+                                                    )}
+                                            </label>
+                                        </div>
+
+                                        <div className="sales-quote-amount">
+                                            <label><b>Total: {formatMoney(total)}</b></label>
+                                        </div>
+                                    </>
+                                )}
 
                             </div>
                         </div>
                     </section>
+
+                    <div className="sales-quote-manager-toggle">
+                        <button
+                            type="button"
+                            onClick={() => setShowDetails(prev => !prev)}
+                        >
+                            {showDetails ? "▲" : "▼"}
+                        </button>
+                    </div>
 
                     {/* ITEMS */}
                     <section className="sales-quote-card">

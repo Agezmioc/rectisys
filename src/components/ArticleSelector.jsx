@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "../context/Context";
 import "./ArticleSelector.css";
+import { normalizeSearch } from "../utils/normalizeSearch";
 
 const ArticleSelector = ({
     isConcept,
@@ -43,16 +44,36 @@ const ArticleSelector = ({
     };
 
     const handleSearch = async () => {
+        setSelectedIds([]);
         setLoading(true);
 
         const foundArticles = await getStockArticles({
             isConcept,
             searchField,
-            searchQuery: searchText
+            searchQuery: ""
         });
 
-        setArticles(foundArticles);
+        const query = normalizeSearch(searchText);
 
+        const filteredArticles = foundArticles.filter(article => {
+            if (!query) return true;
+
+            if (searchField === "desc") {
+                return normalizeSearch(article.desc).includes(query);
+            }
+
+            if (searchField === "code") {
+                return normalizeSearch(article.code).includes(query);
+            }
+
+            if (searchField === "id") {
+                return normalizeSearch(article.id).includes(query);
+            }
+
+            return true;
+        });
+
+        setArticles(filteredArticles);
         setLoading(false);
     };
 

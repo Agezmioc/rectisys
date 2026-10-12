@@ -5,6 +5,7 @@ import SalesQuoteManager from "./SalesQuoteManager";
 import "./SalesQuotesList.css";
 import ArticleFileUploader from "./ArticleFileUploader";
 import ConceptFileUploader from "./ConceptFileUploader";
+import { normalizeSearch } from "../utils/normalizeSearch";
 
 const SalesQuotesList = () => {
     const {
@@ -24,9 +25,10 @@ const SalesQuotesList = () => {
         return salesQuotes.find(q => q.id === selectedQuoteId) ?? null;
     }, [salesQuotes, selectedQuoteId]);
     const [appliedQuery, setAppliedQuery] = useState("");
-    const query = appliedQuery.trim().toLowerCase();
-    const [isCreating, setIsCreating] = useState(false)
+    const query = normalizeSearch(appliedQuery);
+    const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isDuplicating, setIsDuplicating] = useState(false);
     const [showArticleUploader, setShowArticleUploader] = useState(false);
     const [showConceptUploader, setShowConceptUploader] = useState(false);
 
@@ -70,9 +72,7 @@ const SalesQuotesList = () => {
                 return false;
             }
 
-            return String(value)
-                .toLowerCase()
-                .includes(query);
+            return normalizeSearch(value).includes(query);
         })
         .sort((a, b) => b.id - a.id)
         .slice(0, 100);
@@ -131,6 +131,7 @@ const SalesQuotesList = () => {
                     onSaved={(saved) => {
                         setIsEditing(false);
                         setIsCreating(false);
+                        setIsDuplicating(false);
                         getSalesQuotes();
                         setSelectedQuoteId(saved.id);
                     }}
@@ -152,6 +153,36 @@ const SalesQuotesList = () => {
                     onSaved={(saved) => {
                         setIsEditing(false);
                         setIsCreating(false);
+                        setIsDuplicating(false);
+                        getSalesQuotes();
+                        setSelectedQuoteId(saved.id);
+                    }}
+                />
+            </>
+        );
+    }
+
+    if (isDuplicating && selectedQuote) {
+        return (
+            <>
+                <button
+                    onClick={() => {
+                        setIsDuplicating(false);
+                        setSelectedQuoteId(null);
+                    }}
+                >
+                    ← Volver
+                </button>
+
+                <SalesQuoteManager
+                    initialQuote={selectedQuote}
+                    isDuplicate={true}
+                    onCancel={() => {
+                        setIsDuplicating(false);
+                        setSelectedQuoteId(null);
+                    }}
+                    onSaved={(saved) => {
+                        setIsDuplicating(false);
                         getSalesQuotes();
                         setSelectedQuoteId(saved.id);
                     }}
@@ -172,6 +203,9 @@ const SalesQuotesList = () => {
                 onEdit={() => {
                     setSelectedQuoteId(selectedQuote.id);
                     setIsEditing(true);
+                }}
+                onDuplicate={() => {
+                    setIsDuplicating(true);
                 }}
             />
         );

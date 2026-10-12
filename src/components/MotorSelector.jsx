@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useData } from "../context/Context";
 import "./MotorSelector.css";
+import { normalizeSearch } from "../utils/normalizeSearch";
 
 const MotorSelector = ({ onConfirm, onCancel }) => {
     const { stockMotors } = useData();
@@ -10,14 +11,14 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
     const [searchField, setSearchField] = useState("desc");
 
     const filteredMotors = stockMotors.filter(motor => {
-        const query = searchQuery.toLowerCase();
+        const query = normalizeSearch(searchQuery);
 
         if (searchField === "desc") {
-            return motor.desc?.toLowerCase().includes(query);
+            return normalizeSearch(motor.desc).includes(query);
         }
 
         if (searchField === "id") {
-            return String(motor.id).includes(query);
+            return normalizeSearch(motor.id).includes(query);
         }
 
         return true;

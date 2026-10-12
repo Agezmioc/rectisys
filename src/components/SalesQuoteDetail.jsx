@@ -4,7 +4,13 @@ import SalesQuoteItemsList from "./SalesQuoteItemsList";
 import "./SalesQuoteDetail.css";
 import { buildSalesQuotePdf } from "./pdf/buildSalesQuotePdf";
 
-const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
+const SalesQuoteDetail = ({
+    quote,
+    onBack,
+    onEdit,
+    onNew,
+    onDuplicate
+}) => {
     const {
         deleteSalesQuote,
         getSalesQuoteItems,
@@ -124,6 +130,10 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
                             Nuevo
                         </button>
 
+                        <button onClick={onDuplicate}>
+                            Duplicar
+                        </button>
+
                         <button onClick={onEdit}>
                             Editar
                         </button>
@@ -174,7 +184,7 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
                             <div className="sales-quote-card">
                                 <div className="sales-quote-fields-grid">
                                     <div className="sales-quote-field">
-                                        <b>Cliente:</b> {account?.name || "-"}
+                                        <b>Cliente:</b> {quote.name || "-"}
                                     </div>
 
                                     <div className="sales-quote-field">
@@ -182,15 +192,23 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
                                     </div>
 
                                     <div className="sales-quote-field">
-                                        <b>Condición fiscal:</b> {taxPosition?.desc}
+                                        <b>Condición fiscal:</b> {taxPosition?.desc || "-"}
                                     </div>
 
                                     <div className="sales-quote-field">
-                                        <b>Dirección:</b> {quote?.address || "-"}
+                                        <b>Email:</b> {quote.email || "-"}
                                     </div>
 
                                     <div className="sales-quote-field">
-                                        <b>Teléfono:</b> {quote?.phone_num || "-"}
+                                        <b>Teléfono:</b> {quote.phone_num || "-"}
+                                    </div>
+
+                                    <div className="sales-quote-field">
+                                        <b>Dirección:</b> {quote.address || "-"}
+                                    </div>
+
+                                    <div className="sales-quote-field">
+                                        <b>Localidad:</b> {quote.district || "-"}
                                     </div>
                                 </div>
                             </div>
@@ -225,6 +243,11 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
                             <div className="sales-quote-amounts-grid">
 
                                 <div className="sales-quote-field">
+                                    <b>Observaciones: </b>
+                                    <p>{quote.observations || "-"}</p>
+                                </div>
+
+                                <div className="sales-quote-field">
                                     <b>Subtotal:</b> {formatMoney(quote.general_subtotal)}
                                 </div>
 
@@ -234,10 +257,6 @@ const SalesQuoteDetail = ({ quote, onBack, onEdit, onNew }) => {
 
                                 <div className="sales-quote-field">
                                     <b>Total:</b> {formatMoney(quote.total)}
-                                </div>
-                                <div className="sales-quote-field">
-                                    <b>Observaciones: </b>
-                                    <p>{quote.observations || "-"}</p>
                                 </div>
 
                             </div>

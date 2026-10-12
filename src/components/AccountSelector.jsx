@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useData } from "../context/Context";
 import "./AccountSelector.css";
+import { normalizeSearch } from "../utils/normalizeSearch";
 
 const AccountSelector = ({ onConfirm, onCancel }) => {
     const { dataAccounts, dataTaxPositions } = useData();
@@ -9,14 +10,14 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
     const [searchField, setSearchField] = useState("name");
 
     const filteredAccounts = dataAccounts.filter(account => {
-        const query = searchQuery.toLowerCase();
+        const query = normalizeSearch(searchQuery);
 
         if (searchField === "name") {
-            return account.name?.toLowerCase().includes(query);
+            return normalizeSearch(account.name).includes(query);
         }
 
         if (searchField === "id") {
-            return String(account.id).includes(query);
+            return normalizeSearch(account.id).includes(query);
         }
 
         return true;
