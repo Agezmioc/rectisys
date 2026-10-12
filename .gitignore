@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase local files
+supabase/.branches/
+supabase/.temp/
+supabase/snippets/
+supabase/.env
+supabase/.env.*
+!supabase/.env.example
