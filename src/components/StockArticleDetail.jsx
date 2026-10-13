@@ -396,7 +396,7 @@ const StockArticleDetail = ({
                                         )
                                         .map(price => (
 
-                                            <tr key={price.id}>
+                                            <tr key={`${article.id}-${price.list_id}`}>
 
                                                 <td>
                                                     {getListDescription(

@@ -3,7 +3,7 @@ import { useData } from "../context/Context";
 import StockArticleDetail from "./StockArticleDetail";
 import StockArticleManager from "./StockArticleManager";
 import "./StockArticlesList.css";
-import { normalizeSearch } from "../utils/normalizeSearch";
+//import { normalizeSearch } from "../utils/normalizeSearch";
 import ArticleFileUploader from "./ArticleFileUploader";
 import ConceptFileUploader from "./ConceptFileUploader";
 
@@ -61,24 +61,17 @@ const StockArticlesList = () => {
      * BÚSQUEDA
      */
 
+    
     const handleSearch = async () => {
         const data = await getStockArticles({
             isConcept,
-            searchQuery: ""
+            searchField,
+            searchQuery: searchInput.trim()
         });
 
-        const query = normalizeSearch(searchInput);
-
-        const filteredData = data.filter(article => {
-            const value = searchField === "code"
-                ? article.code
-                : article.desc;
-
-            return normalizeSearch(value).includes(query);
-        });
-
-        setArticles(filteredData);
+        setArticles(data);
     };
+
 
     /*
      * ORDEN Y LÍMITE
@@ -159,7 +152,12 @@ const StockArticlesList = () => {
                     });
 
                     setArticles(data);
-                    setSelectedArticle(saved);
+
+                    const [savedWithPrices] = await getStockArticles({
+                        articleIds: [saved.id]
+                    });
+
+                    setSelectedArticle(savedWithPrices ?? saved);
                     setSelectedArticleId(saved.id);
                 }}
             />
@@ -193,7 +191,12 @@ const StockArticlesList = () => {
                             });
 
                             setArticles(data);
-                            setSelectedArticle(saved);
+
+                            const [savedWithPrices] = await getStockArticles({
+                                articleIds: [saved.id]
+                            });
+
+                            setSelectedArticle(savedWithPrices ?? saved);
                             setSelectedArticleId(saved.id);
                         }}
                 />

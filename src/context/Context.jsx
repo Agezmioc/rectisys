@@ -282,23 +282,47 @@ export const ContextProvider = ({children}) => {
         if (articles.length === 0)
             return [];
 
+        
         const articleIdsToSearch = articles.map(a => a.id);
 
-        const { data: prices, error: pricesError } = await supabase
-            .from("stock_prices")
-            .select("*")
-            .in("article_id", articleIdsToSearch);
+        const prices = [];
+        const batchSize = 200;
+        const pageSize = 1000;
 
-        if (pricesError) {
-            console.error(pricesError);
-            return articles;
+        // Consultamos los precios en lotes para evitar URLs demasiado largas.
+        for (let i = 0; i < articleIdsToSearch.length; i += batchSize) {
+            const idsBatch = articleIdsToSearch.slice(i, i + batchSize);
+
+            // Paginamos por si un lote devuelve más de 1000 precios.
+            for (let offset = 0; ; offset += pageSize) {
+                const {
+                    data: pagePrices,
+                    error: pricesError
+                } = await supabase
+                    .from("stock_prices")
+                    .select("*")
+                    .in("article_id", idsBatch)
+                    .range(offset, offset + pageSize - 1);
+
+                if (pricesError) {
+                    console.error("Error al obtener precios de artículos:", pricesError);
+                    return articles;
+                }
+
+                prices.push(...pagePrices);
+
+                if (pagePrices.length < pageSize) {
+                    break;
+                }
+            }
         }
 
         const pricesMap = new Map();
 
         for (const p of prices) {
-            if (!pricesMap.has(p.article_id))
+            if (!pricesMap.has(p.article_id)) {
                 pricesMap.set(p.article_id, []);
+            }
 
             pricesMap.get(p.article_id).push(p);
         }
@@ -307,6 +331,7 @@ export const ContextProvider = ({children}) => {
             ...article,
             prices: pricesMap.get(article.id) ?? []
         }));
+
     };
 
     const getDataAccounts = async () => {
