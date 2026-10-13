@@ -12,6 +12,7 @@ const ArticleFileUploader = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isUploaded, setIsUploaded] = useState(false);
+    const [duplicateCount, setDuplicateCount] = useState(0);
 
     const fileInputRef = useRef(null);
     const isBusy = isUploading || isProcessing;
@@ -39,32 +40,22 @@ const ArticleFileUploader = () => {
     };
 
     const parseFile = (text) => {
-
         const lines = text.split(/\r?\n/);
 
         const records = lines
             .map(line => {
-
                 if (!line.trim()) return null;
 
-                const code =
-                    line.substring(0, 15).trim();
+                const code = line.substring(0, 15).trim();
+                const measure = line.substring(11, 15).trim();
+                const desc = line.substring(15, 56).trim();
+                const rawPrice = line.substring(56).trim();
 
-                const measure =
-                    line.substring(11, 15).trim();
-
-                const desc =
-                    line.substring(15, 56).trim();
-
-                const rawPrice =
-                    line.substring(56).trim();
-
-                const normalizedPrice =
-                    Number(
-                        rawPrice
-                            .replace(/\./g, "")
-                            .replace(",", ".")
-                    );
+                const normalizedPrice = Number(
+                    rawPrice
+                        .replace(/\./g, "")
+                        .replace(",", ".")
+                );
 
                 return {
                     code,
@@ -74,11 +65,24 @@ const ArticleFileUploader = () => {
                 };
             })
             .filter(Boolean);
-        
-        setIsUploaded(false);
-        setParsedArticles(records);
 
-        console.log(records);
+        // Conservar la última aparición de cada código.
+        const uniqueRecordsMap = new Map();
+
+        for (const record of records) {
+            uniqueRecordsMap.set(record.code, record);
+        }
+
+        const uniqueRecords = [...uniqueRecordsMap.values()];
+        const duplicates = records.length - uniqueRecords.length;
+
+        setIsUploaded(false);
+        setParsedArticles(uniqueRecords);
+        setDuplicateCount(duplicates);
+
+        console.log("Registros originales:", records.length);
+        console.log("Registros únicos:", uniqueRecords.length);
+        console.log("Duplicados:", duplicates);
     };
 
     const handleUpload = async () => {
@@ -177,6 +181,13 @@ Actualizados: ${result.updated}`
                 onChange={handleFile}
                 disabled={isBusy}
             />
+
+            {parsedArticles.length > 0 && (
+                <div style={{ marginTop: "1rem" }}>
+                    <div>Registros únicos: {parsedArticles.length}</div>
+                    <div>Duplicados descartados: {duplicateCount}</div>
+                </div>
+            )}
 
             <div style={{ marginTop: "1rem" }}>
 

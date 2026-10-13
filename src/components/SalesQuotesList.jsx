@@ -3,8 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import SalesQuoteDetail from "./SalesQuoteDetail";
 import SalesQuoteManager from "./SalesQuoteManager";
 import "./SalesQuotesList.css";
-import ArticleFileUploader from "./ArticleFileUploader";
-import ConceptFileUploader from "./ConceptFileUploader";
 import { normalizeSearch } from "../utils/normalizeSearch";
 
 const SalesQuotesList = () => {
@@ -29,8 +27,7 @@ const SalesQuotesList = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
-    const [showArticleUploader, setShowArticleUploader] = useState(false);
-    const [showConceptUploader, setShowConceptUploader] = useState(false);
+
 
     const formatMoney = (value) =>
         Number(value || 0).toLocaleString("es-AR", {
@@ -93,35 +90,6 @@ const SalesQuotesList = () => {
 
     if (loading) return <p>Loading...</p>;
 
-    if (showArticleUploader) {
-        return (
-            <>
-                <button
-                    onClick={() => setShowArticleUploader(false)}
-                >
-                    ← Volver
-                </button>
-
-                <ArticleFileUploader />
-            </>
-        );
-    }
-
-    if (showConceptUploader) {
-        return (
-            <>
-                <button
-                    onClick={() => setShowConceptUploader(false)}
-                >
-                    ← Volver
-                </button>
-
-                <ConceptFileUploader />
-            </>
-        );
-    }
-
-    
     if (isCreating) {
         return (
             <>
@@ -222,22 +190,6 @@ const SalesQuotesList = () => {
                     }}
                 >
                     + Nuevo presupuesto
-                </button>
-
-                <button
-                    onClick={() => {
-                        setShowArticleUploader(true);
-                    }}
-                >
-                    📦 Importar Artículos
-                </button>
-
-                <button
-                    onClick={() => {
-                        setShowConceptUploader(true);
-                    }}
-                >
-                    📦 Importar Conceptos
                 </button>
             </div>
 

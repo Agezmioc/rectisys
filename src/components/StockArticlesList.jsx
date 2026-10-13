@@ -4,6 +4,8 @@ import StockArticleDetail from "./StockArticleDetail";
 import StockArticleManager from "./StockArticleManager";
 import "./StockArticlesList.css";
 import { normalizeSearch } from "../utils/normalizeSearch";
+import ArticleFileUploader from "./ArticleFileUploader";
+import ConceptFileUploader from "./ConceptFileUploader";
 
 const formatMoney = (value) => {
     if (value == null || value === "") return "-";
@@ -35,6 +37,9 @@ const StockArticlesList = () => {
 
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+
+    const [showArticleUploader, setShowArticleUploader] = useState(false);
+    const [showConceptUploader, setShowConceptUploader] = useState(false);
 
 
     /*
@@ -105,6 +110,33 @@ const StockArticlesList = () => {
         return <p>Cargando artículos...</p>;
     }
 
+    if (showArticleUploader) {
+        return (
+            <>
+                <button
+                    onClick={() => setShowArticleUploader(false)}
+                >
+                    ← Volver
+                </button>
+
+                <ArticleFileUploader />
+            </>
+        );
+    }
+
+    if (showConceptUploader) {
+        return (
+            <>
+                <button
+                    onClick={() => setShowConceptUploader(false)}
+                >
+                    ← Volver
+                </button>
+
+                <ConceptFileUploader />
+            </>
+        );
+    }
 
     if (isCreating) {
         return (
@@ -205,7 +237,21 @@ const StockArticlesList = () => {
                 >
                     + Nuevo artículo
                 </button>
+                <button
+                    onClick={() => {
+                        setShowArticleUploader(true);
+                    }}
+                >
+                    📦 Importar Artículos
+                </button>
 
+                <button
+                    onClick={() => {
+                        setShowConceptUploader(true);
+                    }}
+                >
+                    📦 Importar Conceptos
+                </button>
             </div>
 
 

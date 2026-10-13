@@ -1810,16 +1810,32 @@ export const ContextProvider = ({children}) => {
         return true;
     };
 
-    const uploadTempArticles = async (records) => {
 
+    const uploadTempArticles = async (records) => {
         const ok = await clearTempArticles();
 
         if (!ok) return false;
 
+        // Conservar únicamente la última aparición de cada código.
+        const uniqueRecordsMap = new Map();
+
+        for (const record of records) {
+            uniqueRecordsMap.set(record.code, record);
+        }
+
+        const uniqueRecords = [...uniqueRecordsMap.values()];
+
+        console.log("Registros originales:", records.length);
+        console.log("Registros únicos:", uniqueRecords.length);
+        console.log(
+            "Duplicados descartados:",
+            records.length - uniqueRecords.length
+        );
+
         const CHUNK_SIZE = 1000;
 
-        for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-            const chunk = records.slice(i, i + CHUNK_SIZE);
+        for (let i = 0; i < uniqueRecords.length; i += CHUNK_SIZE) {
+            const chunk = uniqueRecords.slice(i, i + CHUNK_SIZE);
 
             const { error } = await supabase
                 .from("temp_articles")
@@ -2546,6 +2562,7 @@ export const ContextProvider = ({children}) => {
             updated
         };
     };
+
 
     const getImportableSalesQuotes = async (accountId) => {
 

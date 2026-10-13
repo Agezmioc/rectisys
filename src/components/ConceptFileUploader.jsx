@@ -11,6 +11,7 @@ const ConceptFileUploader = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isUploaded, setIsUploaded] = useState(false);
+    const [duplicateCount, setDuplicateCount] = useState(0);
 
     const fileInputRef = useRef(null);
 
@@ -70,9 +71,19 @@ const ConceptFileUploader = () => {
                 };
             })
             .filter(Boolean);
-        
+
+        const uniqueConceptsMap = new Map();
+
+        for (const concept of concepts) {
+            uniqueConceptsMap.set(concept.code, concept);
+        }
+
+        const uniqueConcepts = [...uniqueConceptsMap.values()];
+        const duplicates = concepts.length - uniqueConcepts.length;
+
         setIsUploaded(false);
-        setParsedConcepts(concepts);
+        setParsedConcepts(uniqueConcepts);
+        setDuplicateCount(duplicates);
     };
 
     const handleUpload = async () => {
@@ -130,6 +141,18 @@ const ConceptFileUploader = () => {
                 onChange={handleFile}
                 disabled={isBusy}
             />
+
+            {parsedConcepts.length > 0 && (
+                    <div style={{ marginTop: "1rem" }}>
+                        <div>
+                            Conceptos únicos: {parsedConcepts.length}
+                        </div>
+
+                        <div>
+                            Duplicados descartados: {duplicateCount}
+                        </div>
+                    </div>
+                )}
 
             <div style={{ marginTop: "1rem" }}>
                 <button
