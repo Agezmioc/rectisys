@@ -175,6 +175,13 @@ const Login = () => {
                         ¿Olvidaste tu contraseña?
                     </Link>
 
+                    <p className="login-register">
+                        ¿No tenés una cuenta?{" "}
+                        <Link to="/registrarse">
+                            Crear cuenta
+                        </Link>
+                    </p>
+
                 </form>
 
             </section>

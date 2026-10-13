@@ -56,14 +56,6 @@ const Home = () => {
 
                 <div className="home-auth">
 
-                    <Link to="/ingresar">
-                        Iniciar sesión
-                    </Link>
-
-                    <Link to="/registrarse">
-                        Registrarse
-                    </Link>
-
                     <button onClick={logout}>
                         Cerrar sesión
                     </button>

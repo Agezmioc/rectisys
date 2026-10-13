@@ -1,0 +1,14 @@
+.login-register {
+    margin: 0;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.login-register a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-register a:hover {
+    text-decoration: underline;
+}
