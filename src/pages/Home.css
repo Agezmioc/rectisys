@@ -1,0 +1,45 @@
+.home {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.home-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0.75rem 1.5rem;
+
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.home-logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: inherit;
+}
+
+.home-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.home-navigation a,
+.home-auth a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.home-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.home-content {
+    flex: 1;
+}

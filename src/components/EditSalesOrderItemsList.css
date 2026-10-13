@@ -1,0 +1,80 @@
+.edit-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ACTION BAR */
+.edit-items-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-items-actions button {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edit-items-warning {
+  color: #b00020;
+  font-size: 0.85rem;
+}
+
+/* TABLE */
+.edit-items-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.edit-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: var(--color-surface);
+}
+
+.edit-items-table th,
+.edit-items-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.edit-items-table th {
+  background: #f0f0f0;
+  position: sticky;
+  top: 0;
+}
+
+.edit-items-table tr:hover {
+  background: #fafafa;
+}
+
+/* INPUTS */
+.cell-input {
+  width: 70px;
+  padding: 0.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
+
+/* BUTTONS */
+.danger-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* helpers */
+.bold {
+  font-weight: 600;
+}

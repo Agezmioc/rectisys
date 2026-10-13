@@ -1,0 +1,246 @@
+.data-account-manager {
+
+    height: 100vh;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+}
+
+
+/* HEADER */
+
+.data-account-manager-header {
+
+    flex-shrink: 0;
+
+    padding: 0.75rem 1rem;
+
+    background: var(--color-surface);
+
+    border-bottom: 1px solid var(--color-border);
+
+}
+
+
+.data-account-manager-topbar {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 1rem;
+
+}
+
+
+.data-account-manager-topbar h2 {
+
+    margin: 0;
+
+    font-size: 1.4rem;
+
+    font-weight: 600;
+
+}
+
+
+.data-account-manager-actions {
+
+    display: flex;
+
+    gap: 0.5rem;
+
+    align-items: center;
+
+}
+
+
+/* BODY */
+
+.data-account-manager-body {
+
+    flex: 1;
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    padding: 1rem;
+
+}
+
+
+#account-form {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 1rem;
+
+}
+
+
+/* GRID */
+
+.data-account-card-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(280px, 1fr));
+
+    gap: 0.75rem;
+
+    align-items: stretch;
+
+}
+
+
+/* CARDS */
+
+.data-account-card {
+
+    background: #f8f8f8;
+
+    border: 1px solid var(--color-border);
+
+    border-radius: 8px;
+
+    padding: 0.8rem;
+
+    font-size: 0.88rem;
+
+    line-height: 1.35;
+
+    display: flex;
+
+    flex-direction: column;
+
+}
+
+
+.data-account-card h3 {
+
+    margin: 0 0 0.75rem;
+
+    font-size: 1rem;
+
+}
+
+
+/* CONTENIDO */
+
+.data-account-card-content {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 0.8rem 1rem;
+
+}
+
+
+.data-account-card-content > div {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.25rem;
+
+}
+
+
+.data-account-card-content label {
+
+    display: block;
+
+    font-size: 0.8rem;
+
+    font-weight: 600;
+
+    margin-bottom: 0.15rem;
+
+    color: #333;
+
+}
+
+
+.data-account-card-content input,
+
+.data-account-card-content select {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+}
+
+
+/* CHECKBOX */
+
+.data-account-checkbox {
+
+    justify-content: center;
+
+}
+
+
+.data-account-checkbox label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.5rem;
+
+    cursor: pointer;
+
+}
+
+
+.data-account-checkbox input {
+
+    width: auto;
+
+    margin: 0;
+
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+
+    .data-account-card-content {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .data-account-manager-topbar {
+
+        align-items: flex-start;
+
+    }
+
+
+    .data-account-manager-actions {
+
+        flex-wrap: wrap;
+
+        justify-content: flex-end;
+
+    }
+
+}

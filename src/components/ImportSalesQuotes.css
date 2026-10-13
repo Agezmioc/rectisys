@@ -1,0 +1,130 @@
+.import-sales-quotes {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+
+  padding: 1rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  max-height: 80vh;
+}
+
+/* HEADER */
+
+.import-sales-quotes-header h3 {
+  margin: 0;
+
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+
+/* TOOLBAR */
+
+.import-sales-quotes-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.import-sales-quotes-input {
+  padding: 0.4rem 0.5rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+
+  font-size: 0.9rem;
+
+  min-width: 220px;
+}
+
+
+/* CRITERIO */
+
+.import-sales-quotes-search-info {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #666);
+}
+
+
+/* TABLE */
+
+.import-sales-quotes-table-container {
+  flex: 1;
+
+  overflow-y: auto;
+
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.import-sales-quotes-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 0.9rem;
+}
+
+.import-sales-quotes-table th,
+.import-sales-quotes-table td {
+  padding: 0.5rem 0.75rem;
+
+  border-bottom: 1px solid var(--color-border);
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+.import-sales-quotes-table th {
+  position: sticky;
+
+  top: 0;
+
+  background: #f0f0f0;
+}
+
+
+/* CENTER CHECKBOX */
+
+.import-sales-quotes-table th:last-child,
+.import-sales-quotes-table td:last-child {
+  text-align: center;
+}
+
+
+/* BUTTONS */
+
+.import-sales-quotes-btn {
+  padding: 0.4rem 0.7rem;
+
+  font-size: 0.85rem;
+
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+
+  background: white;
+
+  cursor: pointer;
+}
+
+.import-sales-quotes-btn.primary {
+  background: var(--color-primary);
+
+  color: white;
+
+  border: none;
+}
+
+.import-sales-quotes-btn.danger {
+  background: #f5f5f5;
+}
+
+.import-sales-quotes-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

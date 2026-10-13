@@ -1,0 +1,134 @@
+.sales-order-detail {
+  min-height: 100vh;
+}
+
+/* HEADER */
+
+.sales-order-detail-header {
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sales-order-detail-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sales-order-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sales-order-show-prices {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sales-order-detail-title {
+  margin: 0;
+  font-size: 1.4rem;
+  margin-top: 0.5rem;
+}
+
+.sales-order-detail-toggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.sales-order-detail-toggle button {
+  min-width: 80px;
+}
+
+/* BODY */
+
+.sales-order-detail-body {
+  padding: 1rem;
+}
+
+/* GRID */
+
+.sales-order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* CARDS */
+
+.sales-order-card {
+  background: #f8f8f8;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.8rem;
+
+  font-size: 0.88rem;
+  line-height: 1.35;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-order-card h3 {
+  margin: 0 0 0.75rem;
+}
+
+/* CAMPOS */
+
+.sales-order-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.sales-order-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sales-order-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.sales-order-field span {
+  word-break: break-word;
+}
+
+/* IMPORTES */
+
+.sales-order-amounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.sales-order-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sales-order-amount label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+/* ITEMS */
+
+.sales-order-items-section {
+  padding: 1rem;
+}
+
+.sales-order-items-header {
+  margin-bottom: 1rem;
+}

@@ -1,31 +1,38 @@
 import { useState } from "react";
 import { useData } from "../context/Context";
+import "./AccountSelector.css";
+import { normalizeSearch } from "../utils/normalizeSearch";
 
 const AccountSelector = ({ onConfirm, onCancel }) => {
-    const { dataAccounts } = useData();
-
+    const { dataAccounts, dataTaxPositions } = useData();
     const [searchInput, setSearchInput] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("name");
 
     const filteredAccounts = dataAccounts.filter(account => {
-        const query = searchQuery.toLowerCase();
+        const query = normalizeSearch(searchQuery);
 
         if (searchField === "name") {
-            return account.name?.toLowerCase().includes(query);
+            return normalizeSearch(account.name).includes(query);
         }
 
         if (searchField === "id") {
-            return String(account.id).includes(query);
+            return normalizeSearch(account.id).includes(query);
         }
 
         return true;
     });
 
     return (
-        <div style={{ border: "1px solid #ccc", padding: "1rem" }}>
-            <div style={{ marginBottom: "0.5rem" }}>
+        <div className="account-selector">
+
+            <div className="account-selector-header">
+                <h3>Seleccionar cliente</h3>
+            </div>
+
+            <div className="account-selector-toolbar">
                 <input
+                    className="account-selector-input"
                     type="text"
                     placeholder="Buscar cliente..."
                     value={searchInput}
@@ -33,6 +40,7 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                 />
 
                 <select
+                    className="account-selector-select"
                     value={searchField}
                     onChange={e => setSearchField(e.target.value)}
                 >
@@ -42,46 +50,64 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
 
                 <button
                     type="button"
+                    className="account-selector-btn primary"
                     onClick={() => setSearchQuery(searchInput)}
                 >
                     Buscar
                 </button>
             </div>
 
-            <table style={{ width: "100%" }}>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {filteredAccounts.map(account => (
-                        <tr key={account.id}>
-                            <td>{account.id}</td>
-                            <td>{account.name}</td>
-
-                            <td>
-                                <button
-                                    type="button"
-                                    onClick={() => onConfirm(account)}
-                                >
-                                    Seleccionar
-                                </button>
-                            </td>
+            <div className="account-selector-table-container">
+                <table className="account-selector-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Situación fiscal</th>
+                            <th>CUIT</th>
+                            <th></th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
 
-            <button
-                type="button"
-                onClick={onCancel}
-            >
-                Cancelar
-            </button>
+                    <tbody>
+                        {filteredAccounts.map(account => {
+                            const taxPosition = dataTaxPositions.find(
+                                tp => tp.id === Number(account.tax_position_id)
+                            );
+
+                            return (
+                                <tr key={account.id}>
+                                    <td>{account.id}</td>
+                                    <td>{account.name}</td>
+                                    <td>{taxPosition?.desc || "-"}</td>
+                                    <td>{account.tax_num || "-"}</td>
+
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className="account-selector-btn"
+                                            onClick={() => onConfirm(account)}
+                                        >
+                                            Seleccionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="account-selector-footer">
+                <button
+                    type="button"
+                    className="account-selector-btn danger"
+                    onClick={onCancel}
+                >
+                    Cancelar
+                </button>
+            </div>
+
         </div>
     );
 };

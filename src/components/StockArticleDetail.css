@@ -1,0 +1,187 @@
+.stock-article-detail {
+  min-height: 100vh;
+}
+
+/* HEADER */
+
+.stock-article-detail-header {
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stock-article-detail-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stock-article-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stock-article-show-prices {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.stock-article-detail-title {
+  margin: 0;
+  font-size: 1.4rem;
+  margin-top: 0.5rem;
+}
+
+.stock-article-detail-toggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.stock-article-detail-toggle button {
+  min-width: 80px;
+}
+
+/* BODY */
+
+.stock-article-detail-body {
+  padding: 1rem;
+}
+
+/* GRID */
+
+.stock-article-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* CARDS */
+
+.stock-article-card {
+  background: #f8f8f8;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.8rem;
+
+  font-size: 0.88rem;
+  line-height: 1.35;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-article-card h3 {
+  margin: 0 0 0.75rem;
+}
+
+/* CAMPOS */
+
+.stock-article-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.stock-article-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.stock-article-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.stock-article-field span {
+  word-break: break-word;
+}
+
+/* IMPORTES */
+
+.stock-article-amounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.stock-article-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stock-article-amount label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+/* PRECIOS */
+
+.stock-article-prices-card {
+    margin-top: 1rem;
+}
+
+.stock-article-prices-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.stock-article-prices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+/* ENCABEZADO */
+
+.stock-article-prices-table thead {
+    background: var(--color-surface);
+}
+
+.stock-article-prices-table th {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+}
+
+/* CELDAS */
+
+.stock-article-prices-table td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+/* FILAS */
+
+.stock-article-prices-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* IMPORTES */
+
+.stock-article-prices-table th:nth-child(2),
+.stock-article-prices-table th:nth-child(3),
+.stock-article-prices-table th:nth-child(4),
+
+.stock-article-prices-table td:nth-child(2),
+.stock-article-prices-table td:nth-child(3),
+.stock-article-prices-table td:nth-child(4) {
+    text-align: right;
+}
+
+/* ÚLTIMA FILA */
+
+.stock-article-prices-table tbody tr:last-child td {
+    border-bottom: none;
+}
