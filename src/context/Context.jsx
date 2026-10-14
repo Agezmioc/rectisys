@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabase/client";
+import { useAuth } from "./AuthContext";
 
 export const Context = createContext()
 
@@ -11,6 +12,7 @@ export const useData = () => {
 }
 
 export const ContextProvider = ({children}) => {
+    const { user, loading: authLoading } = useAuth();
     const [salesQuotes, setSalesQuotes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dataAccounts, setDataAccounts] = useState([]);
@@ -3140,6 +3142,8 @@ export const ContextProvider = ({children}) => {
     };
 
     useEffect(() => {
+        if (authLoading || !user) return;
+
         const init = async () => {
             await Promise.all([
                 getDataAccounts(),
@@ -3152,7 +3156,7 @@ export const ContextProvider = ({children}) => {
         };
 
         init();
-    }, []);
+    }, [authLoading, user?.id]);
 
     return <Context.Provider
             value={{
