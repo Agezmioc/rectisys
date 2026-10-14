@@ -65,6 +65,13 @@ const SalesQuoteDetail = ({
     console.log("accounts:", dataAccounts);
     console.log("motor_id:", quote.motor_id);
     console.log("stockMotors:", stockMotors);
+    console.log("DATOS PARA EL DETALLE:", {
+        dataAccounts: dataAccounts?.length,
+        dataDocuments: dataDocuments?.length,
+        dataConditionsTypes: dataConditionsTypes?.length,
+        dataTaxPositions: dataTaxPositions?.length,
+        stockMotors: stockMotors?.length
+    });
 
     const isDataReady =
         dataAccounts?.length &&
