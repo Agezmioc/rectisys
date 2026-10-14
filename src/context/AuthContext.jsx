@@ -11,41 +11,61 @@ export const AuthProvider = ({ children }) => {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const loadProfile = async (userId) => {
 
-        const {
-            data,
-            error
-        } = await supabase
-            .from("profiles")
-            .select(`
-                id,
-                first_name,
-                last_name,
-                role_id,
-                roles (
-                    id,
-                    name
-                )
-            `)
-            .eq("id", userId)
-            .single();
+    const loadProfile = async (userId, attempts = 5) => {
 
-        if (error) {
-            console.error(
-                "Error al cargar perfil:",
+        for (let attempt = 0; attempt < attempts; attempt++) {
+
+            const {
+                data,
                 error
-            );
+            } = await supabase
+                .from("profiles")
+                .select(`
+                    id,
+                    first_name,
+                    last_name,
+                    role_id,
+                    roles (
+                        id,
+                        name
+                    )
+                `)
+                .eq("id", userId)
+                .maybeSingle();
 
-            setProfile(null);
-            setRole(null);
+            if (error) {
+                console.error(
+                    "Error al cargar perfil:",
+                    error
+                );
 
-            return;
+                setProfile(null);
+                setRole(null);
+                return;
+            }
+
+            if (data) {
+                setProfile(data);
+                setRole(data.roles);
+                return;
+            }
+
+            // Si todavía no existe, esperar antes de volver a consultar.
+            if (attempt < attempts - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
         }
 
-        setProfile(data);
-        setRole(data.roles);
+        console.error(
+            "No se encontró el perfil después de varios intentos:",
+            userId
+        );
+
+        setProfile(null);
+        setRole(null);
     };
+
 
     useEffect(() => {
 

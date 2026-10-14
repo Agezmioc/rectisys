@@ -305,7 +305,7 @@ const DataAccountDetail = ({
 
                             <div className="data-account-field">
 
-                                <b>Ingresos brutos:</b>
+                                <b>Saldo:</b>
 
                                 <span>
                                     {account.balance || "-"}
