@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useData } from "../context/Context";
 import StockArticleDetail from "./StockArticleDetail";
 import StockArticleManager from "./StockArticleManager";
@@ -26,6 +26,7 @@ const StockArticlesList = () => {
     } = useData();
 
     const [articles, setArticles] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false);
 
     const [searchInput, setSearchInput] = useState("");
     const [searchField, setSearchField] = useState("code");
@@ -43,34 +44,28 @@ const StockArticlesList = () => {
 
 
     /*
-     * CARGA INICIAL
-     */
-
-    useEffect(() => {
-
-        getStockArticles({
-            isConcept: false
-        }).then(data => {
-            setArticles(data);
-        });
-
-    }, []);
-
-
-    /*
      * BÚSQUEDA
      */
 
-    
     const handleSearch = async () => {
+        const query = searchInput.trim();
+
+        if (!query) {
+            setHasSearched(false);
+            setArticles([]);
+            return;
+        }
+
         const data = await getStockArticles({
             isConcept,
             searchField,
-            searchQuery: searchInput.trim()
+            searchQuery: query
         });
 
-        setArticles(data);
+        setArticles(data || []);
+        setHasSearched(true);
     };
+
 
 
     /*
@@ -316,7 +311,11 @@ const StockArticlesList = () => {
 
             {/* RESULTADOS */}
 
-            {displayedArticles.length === 0 ? (
+            {!hasSearched ? (
+
+                <p>Ingresá un criterio de búsqueda.</p>
+
+            ) : displayedArticles.length === 0 ? (
 
                 <p>No hay resultados</p>
 
@@ -325,69 +324,32 @@ const StockArticlesList = () => {
                 <div className="stock-articles-table-container">
 
                     <table className="stock-articles-table">
-
                         <thead>
-
                             <tr>
-
-                                <th>
-                                    Código
-                                </th>
-
-                                <th>
-                                    Descripción
-                                </th>
-
-                                <th>
-                                    Concepto
-                                </th>
-
-                                <th>
-                                    Precio
-                                </th>
-
-                                <th>
-                                    Acciones
-                                </th>
-
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Concepto</th>
+                                <th>Precio</th>
+                                <th>Acciones</th>
                             </tr>
-
                         </thead>
 
-
                         <tbody>
-
                             {displayedArticles.map(article => (
-
                                 <tr key={article.id}>
-
-                                    <td>
-                                        {article.code || "-"}
-                                    </td>
-
-                                    <td>
-                                        {article.desc || "-"}
-                                    </td>
-
-                                    <td>
-                                        {article.is_concept
-                                            ? "Sí"
-                                            : "No"
-                                        }
-                                    </td>
-
+                                    <td>{article.code || "-"}</td>
+                                    <td>{article.desc || "-"}</td>
+                                    <td>{article.is_concept ? "Sí" : "No"}</td>
                                     <td>
                                         {article.is_concept
                                             ? "-"
                                             : formatMoney(
                                                 article.prices?.find(
-                                                    (price) => Number(price.list_id) === 0
+                                                    price => Number(price.list_id) === 0
                                                 )?.price
                                             )}
                                     </td>
-
                                     <td>
-
                                         <button
                                             onClick={() => {
                                                 setSelectedArticle(article);
@@ -396,15 +358,10 @@ const StockArticlesList = () => {
                                         >
                                             Ver detalles
                                         </button>
-
                                     </td>
-
                                 </tr>
-
                             ))}
-
                         </tbody>
-
                     </table>
 
                 </div>

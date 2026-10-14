@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useData } from "../context/Context";
 import DataAccountDetail from "./DataAccountDetail";
 import DataAccountManager from "./DataAccountManager";
@@ -10,11 +10,11 @@ const DataAccountsList = () => {
     const {
         getDataAccounts,
         dataTaxPositions,
-        getDataTaxPositions,
         loading
     } = useData();
 
     const [accounts, setAccounts] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false);
 
     const [searchInput, setSearchInput] = useState("");
     const [searchField, setSearchField] = useState("id");
@@ -29,66 +29,52 @@ const DataAccountsList = () => {
 
 
     /*
-     * CARGA INICIAL
-     */
-
-    useEffect(() => {
-
-        getDataAccounts().then(data => {
-            setAccounts(data || []);
-        });
-
-        if (!dataTaxPositions?.length) {
-            getDataTaxPositions();
-        }
-
-    }, []);
-
-
-    /*
      * BÚSQUEDA
      */
 
     const handleSearch = async () => {
+        const query = searchInput.trim();
+
+        if (!query) {
+            setHasSearched(false);
+            setAccounts([]);
+            return;
+        }
 
         const data = await getDataAccounts();
 
         let filteredData = data || [];
 
         if (accountType === "client") {
-
             filteredData = filteredData.filter(
                 account => account.is_client
             );
-
         }
 
         if (accountType === "provider") {
-
             filteredData = filteredData.filter(
                 account => account.is_provider
             );
-
         }
 
-        if (searchInput.trim()) {
-            const query = normalizeSearch(searchInput);
+        const normalizedQuery = normalizeSearch(query);
 
-            filteredData = filteredData.filter(account => {
-                if (searchField === "id") {
-                    return normalizeSearch(account.id).includes(query);
-                }
+        filteredData = filteredData.filter(account => {
+            if (searchField === "id") {
+                return normalizeSearch(account.id).includes(normalizedQuery);
+            }
 
-                if (searchField === "name") {
-                    return normalizeSearch(account.name).includes(query);
-                }
+            if (searchField === "name") {
+                return normalizeSearch(account.name).includes(normalizedQuery);
+            }
 
-                return true;
-            });
-        }
+            return false;
+        });
 
         setAccounts(filteredData);
+        setHasSearched(true);
     };
+
 
 
     /*
@@ -313,7 +299,11 @@ const DataAccountsList = () => {
 
             {/* RESULTADOS */}
 
-            {displayedAccounts.length === 0 ? (
+            {!hasSearched ? (
+
+                <p>Ingresá un criterio de búsqueda.</p>
+
+            ) : displayedAccounts.length === 0 ? (
 
                 <p>No hay resultados</p>
 
@@ -322,62 +312,24 @@ const DataAccountsList = () => {
                 <div className="data-accounts-table-container">
 
                     <table className="data-accounts-table">
-
                         <thead>
-
                             <tr>
-
-                                <th>
-                                    ID
-                                </th>
-
-                                <th>
-                                    Nombre
-                                </th>
-
-                                <th>
-                                    Nº fiscal
-                                </th>
-
-                                <th>
-                                    Posición impositiva
-                                </th>
-
-                                <th>
-                                    Cliente
-                                </th>
-
-                                <th>
-                                    Proveedor
-                                </th>
-
-                                <th>
-                                    Acciones
-                                </th>
-
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Nº fiscal</th>
+                                <th>Posición impositiva</th>
+                                <th>Cliente</th>
+                                <th>Proveedor</th>
+                                <th>Acciones</th>
                             </tr>
-
                         </thead>
 
-
                         <tbody>
-
                             {displayedAccounts.map(account => (
-
                                 <tr key={account.id}>
-
-                                    <td>
-                                        {account.id || "-"}
-                                    </td>
-
-                                    <td>
-                                        {account.name || "-"}
-                                    </td>
-
-                                    <td>
-                                        {account.tax_num || "-"}
-                                    </td>
-
+                                    <td>{account.id || "-"}</td>
+                                    <td>{account.name || "-"}</td>
+                                    <td>{account.tax_num || "-"}</td>
                                     <td>
                                         {dataTaxPositions?.find(
                                             position =>
@@ -385,23 +337,9 @@ const DataAccountsList = () => {
                                                 Number(account.tax_position_id)
                                         )?.desc || "-"}
                                     </td>
-
+                                    <td>{account.is_client ? "Sí" : "No"}</td>
+                                    <td>{account.is_provider ? "Sí" : "No"}</td>
                                     <td>
-                                        {account.is_client
-                                            ? "Sí"
-                                            : "No"
-                                        }
-                                    </td>
-
-                                    <td>
-                                        {account.is_provider
-                                            ? "Sí"
-                                            : "No"
-                                        }
-                                    </td>
-
-                                    <td>
-
                                         <button
                                             onClick={() => {
                                                 setSelectedAccount(account);
@@ -410,15 +348,10 @@ const DataAccountsList = () => {
                                         >
                                             Ver detalles
                                         </button>
-
                                     </td>
-
                                 </tr>
-
                             ))}
-
                         </tbody>
-
                     </table>
 
                 </div>
