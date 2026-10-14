@@ -484,7 +484,6 @@ const EditSalesOrderItemsList = ({
                                     {/* CANTIDAD */}
 
                                     <td>
-
                                         <input
                                             className="cell-input"
                                             type="number"
@@ -496,6 +495,11 @@ const EditSalesOrderItemsList = ({
                                                     : undefined
                                             }
                                             value={item.quantity ?? 1}
+                                            onKeyDown={e => {
+                                                if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             onChange={e =>
                                                 handleChange(
                                                     rowId,
@@ -504,7 +508,6 @@ const EditSalesOrderItemsList = ({
                                                 )
                                             }
                                         />
-
                                     </td>
 
                                     {/* PRECIO */}

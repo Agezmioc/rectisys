@@ -194,10 +194,9 @@ const EditSalesQuoteItemsList = ({
                                     <td>
                                         <input
                                             className="cell-input"
-                                            type="number"
-                                            min="1"
-                                            step="0.01"
-                                            value={item.quantity}
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={item.quantity ?? 1}
                                             onChange={e =>
                                                 handleChange(
                                                     item.id ?? item.temp_id,

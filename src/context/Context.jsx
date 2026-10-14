@@ -3141,8 +3141,10 @@ export const ContextProvider = ({children}) => {
         return user.id;
     };
 
+    const userId = user?.id;
+
     useEffect(() => {
-        if (authLoading || !user) return;
+        if (authLoading || !userId) return;
 
         const init = async () => {
             await Promise.all([
@@ -3156,7 +3158,7 @@ export const ContextProvider = ({children}) => {
         };
 
         init();
-    }, [authLoading, user?.id]);
+    }, [authLoading, userId]);
 
     return <Context.Provider
             value={{
