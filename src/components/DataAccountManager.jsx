@@ -194,7 +194,9 @@ const DataAccountManager = ({
                 account.tax_num?.trim() || null,
 
             balance:
-                account.balance?.trim() || null,
+                account.balance !== "" && account.balance != null
+                    ? Number(account.balance)
+                    : null,
 
             tax_num_2:
                 account.tax_num_2?.trim() || null,
@@ -557,7 +559,7 @@ const DataAccountManager = ({
                                 <div>
 
                                     <label>
-                                        Ingresos brutos
+                                        Saldo
                                     </label>
 
                                     <input
