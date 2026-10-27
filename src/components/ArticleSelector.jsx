@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "../context/Context";
 import "./ArticleSelector.css";
-import { normalizeSearch } from "../utils/normalizeSearch";
 
 const ArticleSelector = ({
     isConcept,
@@ -43,39 +42,35 @@ const ArticleSelector = ({
         return vatMap.get(article.vat_type_id)?.value ?? 0;
     };
 
+
     const handleSearch = async () => {
+        const query = searchText.trim();
+
         setSelectedIds([]);
+
+        if (!query) {
+            setArticles([]);
+            return;
+        }
+
         setLoading(true);
 
-        const foundArticles = await getStockArticles({
-            isConcept,
-            searchField,
-            searchQuery: ""
-        });
+        try {
+            const foundArticles = await getStockArticles({
+                isConcept,
+                searchField,
+                searchQuery: query
+            });
 
-        const query = normalizeSearch(searchText);
-
-        const filteredArticles = foundArticles.filter(article => {
-            if (!query) return true;
-
-            if (searchField === "desc") {
-                return normalizeSearch(article.desc).includes(query);
-            }
-
-            if (searchField === "code") {
-                return normalizeSearch(article.code).includes(query);
-            }
-
-            if (searchField === "id") {
-                return normalizeSearch(article.id).includes(query);
-            }
-
-            return true;
-        });
-
-        setArticles(filteredArticles);
-        setLoading(false);
+            setArticles(foundArticles);
+        } catch (error) {
+            console.error("Error buscando artículos:", error);
+            setArticles([]);
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     const toggleArticle = (id) => {
         setSelectedIds(prev =>

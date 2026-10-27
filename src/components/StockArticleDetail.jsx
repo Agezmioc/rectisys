@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "../context/Context";
 import "./StockArticleDetail.css";
 
@@ -13,7 +13,6 @@ const StockArticleDetail = ({
         stockLists,
         getStockLists,
 
-        dataAccounts,
         stockCategories,
         stockClasses,
         dataVatTypes,
@@ -26,8 +25,7 @@ const StockArticleDetail = ({
         deleteStockArticle
     } = useData();
 
-
-
+    const [providerAccount, setProviderAccount] = useState(null);
 
     /*
      * CARGAR LISTAS
@@ -37,10 +35,6 @@ const StockArticleDetail = ({
 
         if (!stockLists?.length) {
             getStockLists();
-        }
-
-        if (!dataAccounts?.length) {
-            getDataAccounts();
         }
 
         if (!stockCategories?.length) {
@@ -112,6 +106,42 @@ const StockArticleDetail = ({
 
         onBack?.();
     };
+
+    /*
+     * Obtener proveedor
+     */
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadProviderAccount = async () => {
+            if (!article?.account_id) {
+                setProviderAccount(null);
+                return;
+            }
+
+            const accounts = await getDataAccounts({
+                searchField: "id",
+                searchQuery: String(article.account_id)
+            });
+
+            if (!cancelled) {
+                setProviderAccount(accounts[0] ?? null);
+            }
+        };
+
+        loadProviderAccount().catch(error => {
+            console.error("Error cargando cuenta del artículo:", error);
+
+            if (!cancelled) {
+                setProviderAccount(null);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [article?.account_id, getDataAccounts]);
 
 
     if (!article) {
@@ -264,12 +294,8 @@ const StockArticleDetail = ({
                         <div className="stock-article-fields-grid">
 
                             <div className="stock-article-field">
-                                <b>Cuenta:</b>{" "}
-                                {dataAccounts?.find(
-                                    account =>
-                                        Number(account.id) ===
-                                        Number(article.account_id)
-                                )?.name || "-"}
+                                <b>Proveedor:</b>{" "}
+                                {providerAccount?.name || "-"}
                             </div>
 
                             <div className="stock-article-field">

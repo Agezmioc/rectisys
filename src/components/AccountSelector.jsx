@@ -1,31 +1,43 @@
+
 import { useState } from "react";
 import { useData } from "../context/Context";
 import "./AccountSelector.css";
-import { normalizeSearch } from "../utils/normalizeSearch";
 
 const AccountSelector = ({ onConfirm, onCancel }) => {
-    const { dataAccounts, dataTaxPositions } = useData();
+    const { getDataAccounts, dataTaxPositions } = useData();
+
     const [searchInput, setSearchInput] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("name");
+    const [accounts, setAccounts] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const filteredAccounts = dataAccounts.filter(account => {
-        const query = normalizeSearch(searchQuery);
+    const handleSearch = async () => {
+        const query = searchInput.trim();
 
-        if (searchField === "name") {
-            return normalizeSearch(account.name).includes(query);
+        if (!query) {
+            setAccounts([]);
+            return;
         }
 
-        if (searchField === "id") {
-            return normalizeSearch(account.id).includes(query);
-        }
+        setLoading(true);
 
-        return true;
-    });
+        try {
+            const results = await getDataAccounts({
+                searchField,
+                searchQuery: query
+            });
+
+            setAccounts(results);
+        } catch (error) {
+            console.error("Error buscando cuentas:", error);
+            setAccounts([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="account-selector">
-
             <div className="account-selector-header">
                 <h3>Seleccionar cliente</h3>
             </div>
@@ -37,6 +49,12 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                     placeholder="Buscar cliente..."
                     value={searchInput}
                     onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSearch();
+                        }
+                    }}
                 />
 
                 <select
@@ -51,9 +69,10 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                 <button
                     type="button"
                     className="account-selector-btn primary"
-                    onClick={() => setSearchQuery(searchInput)}
+                    onClick={handleSearch}
+                    disabled={loading}
                 >
-                    Buscar
+                    {loading ? "Buscando..." : "Buscar"}
                 </button>
             </div>
 
@@ -70,30 +89,41 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                     </thead>
 
                     <tbody>
-                        {filteredAccounts.map(account => {
-                            const taxPosition = dataTaxPositions.find(
-                                tp => tp.id === Number(account.tax_position_id)
-                            );
+                        {loading ? (
+                            <tr>
+                                <td colSpan={5}>Buscando cuentas...</td>
+                            </tr>
+                        ) : accounts.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    No se encontraron resultados.
+                                </td>
+                            </tr>
+                        ) : (
+                            accounts.map(account => {
+                                const taxPosition = dataTaxPositions.find(
+                                    tp => tp.id === Number(account.tax_position_id)
+                                );
 
-                            return (
-                                <tr key={account.id}>
-                                    <td>{account.id}</td>
-                                    <td>{account.name}</td>
-                                    <td>{taxPosition?.desc || "-"}</td>
-                                    <td>{account.tax_num || "-"}</td>
-
-                                    <td>
-                                        <button
-                                            type="button"
-                                            className="account-selector-btn"
-                                            onClick={() => onConfirm(account)}
-                                        >
-                                            Seleccionar
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                                return (
+                                    <tr key={account.id}>
+                                        <td>{account.id}</td>
+                                        <td>{account.name}</td>
+                                        <td>{taxPosition?.desc || "-"}</td>
+                                        <td>{account.tax_num || "-"}</td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="account-selector-btn"
+                                                onClick={() => onConfirm(account)}
+                                            >
+                                                Seleccionar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -107,7 +137,6 @@ const AccountSelector = ({ onConfirm, onCancel }) => {
                     Cancelar
                 </button>
             </div>
-
         </div>
     );
 };

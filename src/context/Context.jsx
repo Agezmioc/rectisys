@@ -238,6 +238,11 @@ export const ContextProvider = ({children}) => {
         searchQuery = "",
         articleIds = []
     }) => {
+
+        if (!searchQuery.trim() && articleIds.length === 0) {
+            return [];
+        }
+
         let query = supabase
             .from("stock_articles")
             .select(`
@@ -336,9 +341,17 @@ export const ContextProvider = ({children}) => {
 
     };
 
-    const getDataAccounts = async () => {
+    const getDataAccounts = async ({
+        searchField = "name",
+        searchQuery = ""
+    } = {}) => {
+        const query = searchQuery.trim();
 
-        const { data, error } = await supabase
+        if (!query) {
+            return [];
+        }
+
+        let request = supabase
             .from("data_accounts")
             .select(`
                 id,
@@ -362,14 +375,24 @@ export const ContextProvider = ({children}) => {
             `)
             .order("id");
 
-        if (error) {
-            console.error("Error loading accounts:", error);
-            return [];
+        if (searchField === "id") {
+            if (!/^\d+$/.test(query)) {
+                return [];
+            }
+
+            request = request.eq("id", Number(query));
+        } else {
+            request = request.ilike("name", `%${query}%`);
         }
 
-        setDataAccounts(data || []);
+        const { data, error } = await request;
 
-        return data || [];
+        if (error) {
+            console.error("Error buscando cuentas:", error);
+            throw error;
+        }
+
+        return data ?? [];
     };
 
     const createDataAccount = async (accountData) => {
@@ -494,18 +517,41 @@ export const ContextProvider = ({children}) => {
         setDataTaxPositions(data || []);
     };
 
-    const getStockMotors = async () => {
-        const { data, error } = await supabase
-            .from("stock_motors")
-            .select("id, desc, list_id");
+    const getStockMotors = async ({
+        searchField = "desc",
+        searchQuery = ""
+    } = {}) => {
+        const query = searchQuery.trim();
 
-        if (error) {
-            console.error("Error loading motors:", error);
-            return;
+        if (!query) {
+            return [];
         }
 
-        setStockMotors(data || []);
+        let request = supabase
+            .from("stock_motors")
+            .select("id, desc, list_id")
+            .order("id");
+
+        if (searchField === "id") {
+            if (!/^\d+$/.test(query)) {
+                return [];
+            }
+
+            request = request.eq("id", Number(query));
+        } else {
+            request = request.ilike("desc", `%${query}%`);
+        }
+
+        const { data, error } = await request;
+
+        if (error) {
+            console.error("Error buscando motores:", error);
+            throw error;
+        }
+
+        return data ?? [];
     };
+
 
     const getStockLists = async () => {
         const { data, error } = await supabase
@@ -1879,6 +1925,12 @@ export const ContextProvider = ({children}) => {
 
     const processTempArticles = async (onProgress = () => {}) => {
 
+        const trueMargin = await getTrueMargin(2);
+
+        if (trueMargin === null) {
+            return null;
+        }
+
         const batchSize = 1000;
 
         let categoryOffset = 0;
@@ -2075,9 +2127,11 @@ export const ContextProvider = ({children}) => {
                         updated_at: now
                     });
 
+                    const cost = calculateImportedCost(temp.price);
+
                     pendingPrices.push({
                         code: temp.code,
-                        cost: temp.price
+                        cost
                     });
 
                     inserted++;
@@ -2113,36 +2167,36 @@ export const ContextProvider = ({children}) => {
                     priceMap.get(existingArticle.id);
 
                 if (existingPrice) {
-
-                    const newPrice = temp.price * 1.5;
+                    const cost = calculateImportedCost(temp.price);
+                    const price = calculatePrice(cost, trueMargin);
 
                     const priceChanged =
-                        existingPrice.cost !== temp.price ||
-                        existingPrice.margin !== 50 ||
-                        Number(existingPrice.price) !== newPrice;
+                        Number(existingPrice.cost) !== cost ||
+                        Number(existingPrice.margin) !== trueMargin ||
+                        Number(existingPrice.price) !== price;
 
                     if (priceChanged) {
-
                         pricesToUpdate.push({
                             id: existingPrice.id,
-                            cost: temp.price,
-                            margin: 50,
-                            price: newPrice,
+                            cost,
+                            margin: trueMargin,
+                            price,
                             updated_at: now
                         });
-
                     }
-
                 } else {
+                    const cost = calculateImportedCost(temp.price);
+                    const price = calculatePrice(cost, trueMargin);
+
                     pricesToInsert.push({
                         article_id: existingArticle.id,
                         list_id: 0,
-                        cost: temp.price,
-                        margin: 50,
-                        price: temp.price * 1.5,
+                        cost,
+                        margin: trueMargin,
+                        price,
                         created_at: now,
                         updated_at: now
-                    })
+                    });
                 }
             }
 
@@ -2172,12 +2226,14 @@ export const ContextProvider = ({children}) => {
                         continue;
                     }
 
+                    const price = calculatePrice(item.cost, trueMargin);
+
                     pricesToInsert.push({
                         article_id: articleId,
                         list_id: 0,
                         cost: item.cost,
-                        margin: 50,
-                        price: item.cost * 1.5,
+                        margin: trueMargin,
+                        price,
                         created_at: now,
                         updated_at: now
                     });
@@ -2247,6 +2303,12 @@ export const ContextProvider = ({children}) => {
     };
 
     const processTempConcepts = async () => {
+
+        const trueMargin = await getTrueMargin(1);
+
+        if (trueMargin === null) {
+            return null;
+        }
 
         const batchSize = 1000;
 
@@ -2422,19 +2484,20 @@ export const ContextProvider = ({children}) => {
                         priceMap.get(priceKey);
 
                     if (existingPrice) {
+                        const cost = calculateImportedCost(numericPrice);
+                        const price = calculatePrice(cost, trueMargin);
 
                         const priceChanged =
-                            Number(existingPrice.cost) !== numericPrice ||
-                            Number(existingPrice.price) !== numericPrice ||
-                            Number(existingPrice.margin) !== 0;
+                            Number(existingPrice.cost) !== cost ||
+                            Number(existingPrice.price) !== price ||
+                            Number(existingPrice.margin) !== trueMargin;
 
                         if (priceChanged) {
-
                             pricesToUpdate.push({
                                 id: existingPrice.id,
-                                cost: numericPrice,
-                                margin: 0,
-                                price: numericPrice,
+                                cost,
+                                margin: trueMargin,
+                                price,
                                 updated_at: now
                             });
                         }
@@ -2442,14 +2505,15 @@ export const ContextProvider = ({children}) => {
                         continue;
                     }
 
+                    const cost = calculateImportedCost(numericPrice);
+                    const price = calculatePrice(cost, trueMargin);
+
                     pricesToInsert.push({
                         article_id: articleId,
                         list_id: numericListId,
-
-                        cost: numericPrice,
-                        margin: 0,
-                        price: numericPrice,
-
+                        cost,
+                        margin: trueMargin,
+                        price,
                         created_at: now,
                         updated_at: now
                     });
@@ -2457,9 +2521,9 @@ export const ContextProvider = ({children}) => {
                     priceMap.set(priceKey, {
                         article_id: articleId,
                         list_id: numericListId,
-                        cost: numericPrice,
-                        margin: 0,
-                        price: numericPrice
+                        cost,
+                        margin: trueMargin,
+                        price
                     });
                 }
             }
@@ -2516,14 +2580,15 @@ export const ContextProvider = ({children}) => {
                         const numericPrice =
                             Number(rawPrice);
 
+                        const cost = calculateImportedCost(numericPrice);
+                        const price = calculatePrice(cost, trueMargin);
+
                         pricesToInsert.push({
                             article_id: articleId,
                             list_id: numericListId,
-
-                            cost: numericPrice,
-                            margin: 0,
-                            price: numericPrice,
-
+                            cost,
+                            margin: trueMargin,
+                            price,
                             created_at: now,
                             updated_at: now
                         });
@@ -3141,6 +3206,47 @@ export const ContextProvider = ({children}) => {
         return user.id;
     };
 
+    const getTrueMargin = async (parameterId) => {
+        const { data, error } = await supabase
+            .from("data_parameters")
+            .select("true_margin")
+            .eq("id", parameterId)
+            .single();
+
+        if (error) {
+            console.error("Error obteniendo el margen:", error);
+            return null;
+        }
+
+        if (data?.true_margin == null) {
+            console.error(
+                `El parámetro ${parameterId} no tiene true_margin configurado`
+            );
+            return null;
+        }
+
+        const margin = Number(data.true_margin);
+
+        if (!Number.isFinite(margin)) {
+            console.error("El margen configurado no es válido:", data.true_margin);
+            return null;
+        }
+
+        return margin;
+    };
+
+    const calculateImportedCost = (importedPrice) => {
+        return Math.round(
+            (Number(importedPrice) / 1.21 / 1.33 + Number.EPSILON) * 100
+        ) / 100;
+    };
+
+    const calculatePrice = (cost, margin) => {
+        return Math.round(
+            (cost * (1 + margin / 100) + Number.EPSILON) * 100
+        ) / 100;
+    };
+
     const userId = user?.id;
 
     useEffect(() => {
@@ -3148,11 +3254,9 @@ export const ContextProvider = ({children}) => {
 
         const init = async () => {
             await Promise.all([
-                getDataAccounts(),
                 getDataDocuments(),
                 getDataConditionsTypes(),
                 getDataTaxPositions(),
-                getStockMotors(),
                 getStockLists()
             ]);
         };

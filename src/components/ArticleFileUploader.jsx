@@ -66,10 +66,19 @@ const ArticleFileUploader = () => {
             })
             .filter(Boolean);
 
-        // Conservar la última aparición de cada código.
+        // Identificar los códigos duplicados.
+        const seenCodes = new Set();
+        const duplicateCodes = new Set();
         const uniqueRecordsMap = new Map();
 
         for (const record of records) {
+            if (seenCodes.has(record.code)) {
+                duplicateCodes.add(record.code);
+            }
+
+            seenCodes.add(record.code);
+
+            // Conservar la última aparición de cada código.
             uniqueRecordsMap.set(record.code, record);
         }
 
@@ -83,6 +92,7 @@ const ArticleFileUploader = () => {
         console.log("Registros originales:", records.length);
         console.log("Registros únicos:", uniqueRecords.length);
         console.log("Duplicados:", duplicates);
+        console.log("Códigos duplicados:", [...duplicateCodes]);
     };
 
     const handleUpload = async () => {

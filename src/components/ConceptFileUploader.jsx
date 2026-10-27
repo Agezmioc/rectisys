@@ -72,9 +72,19 @@ const ConceptFileUploader = () => {
             })
             .filter(Boolean);
 
+        // Identificar los códigos duplicados.
+        const seenCodes = new Set();
+        const duplicateCodes = new Set();
         const uniqueConceptsMap = new Map();
 
         for (const concept of concepts) {
+            if (seenCodes.has(concept.code)) {
+                duplicateCodes.add(concept.code);
+            }
+
+            seenCodes.add(concept.code);
+
+            // Conservar la última aparición de cada código.
             uniqueConceptsMap.set(concept.code, concept);
         }
 
@@ -84,6 +94,11 @@ const ConceptFileUploader = () => {
         setIsUploaded(false);
         setParsedConcepts(uniqueConcepts);
         setDuplicateCount(duplicates);
+
+        console.log("Conceptos originales:", concepts.length);
+        console.log("Conceptos únicos:", uniqueConcepts.length);
+        console.log("Duplicados descartados:", duplicates);
+        console.log("Códigos duplicados:", [...duplicateCodes]);
     };
 
     const handleUpload = async () => {

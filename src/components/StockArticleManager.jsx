@@ -4,6 +4,8 @@ import { isValidNumberInput } from "../utils/numberInput";
 import "./StockArticleManager.css";
 import StockCategorySelector from "./StockCategorySelector";
 
+const PROVIDER_PARAMETER_ID = 3;
+
 const StockArticleManager = ({
     initialArticle = null,
     onCancel,
@@ -25,7 +27,8 @@ const StockArticleManager = ({
 
         getProviderAccountId,
 
-        dataAccounts,
+        getDataAccounts,
+
         dataVatTypes,
         getDataVatTypes
     } = useData();
@@ -35,6 +38,7 @@ const StockArticleManager = ({
      * ESTADO
      */
     const [showCategorySelector, setShowCategorySelector] = useState(false);
+    const [providerName, setProviderName] = useState("");
 
     const emptyArticle = {
         code: "",
@@ -149,18 +153,23 @@ const StockArticleManager = ({
     }, []);
 
     useEffect(() => {
+        let cancelled = false;
 
         const updateAutomaticFields = async () => {
+            const accountId = await getProviderAccountId(PROVIDER_PARAMETER_ID);
 
-            const parameterId = article.is_concept ? 1 : 2;
+            const accounts = accountId
+                ? await getDataAccounts({
+                    searchField: "id",
+                    searchQuery: String(accountId)
+                })
+                : [];
 
-            const accountId =
-                await getProviderAccountId(parameterId);
+            const account = accounts[0];
 
-            const classDescription =
-                article.is_concept
-                    ? "conceptos"
-                    : "general";
+            const classDescription = article.is_concept
+                ? "conceptos"
+                : "general";
 
             const classId =
                 stockClasses?.find(
@@ -169,6 +178,12 @@ const StockArticleManager = ({
                         classDescription
                 )?.id ?? "";
 
+            if (cancelled) {
+                return;
+            }
+
+            setProviderName(account?.name ?? "");
+
             setArticle(prev => ({
                 ...prev,
                 account_id: accountId ?? "",
@@ -176,17 +191,25 @@ const StockArticleManager = ({
             }));
         };
 
-
         if (!stockClasses?.length) {
             return;
         }
 
-        updateAutomaticFields();
+        updateAutomaticFields().catch(error => {
+            console.error(
+                "Error cargando proveedor del artículo:",
+                error
+            );
+        });
 
+        return () => {
+            cancelled = true;
+        };
     }, [
         article.is_concept,
         stockClasses,
-        getProviderAccountId
+        getProviderAccountId,
+        getDataAccounts
     ]);
 
 
@@ -817,22 +840,14 @@ const StockArticleManager = ({
 
 
                                 <div>
-
                                     <label>
                                         Cuenta
                                     </label>
 
                                     <input
-                                        value={
-                                            dataAccounts?.find(
-                                                account =>
-                                                    Number(account.id) ===
-                                                    Number(article.account_id)
-                                            )?.name || ""
-                                        }
+                                        value={providerName}
                                         readOnly
                                     />
-
                                 </div>
 
 

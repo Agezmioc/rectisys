@@ -1,44 +1,59 @@
 import { useState } from "react";
 import { useData } from "../context/Context";
 import "./MotorSelector.css";
-import { normalizeSearch } from "../utils/normalizeSearch";
 
 const MotorSelector = ({ onConfirm, onCancel }) => {
-    const { stockMotors } = useData();
+    const { getStockMotors } = useData();
 
     const [searchInput, setSearchInput] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("desc");
+    const [motors, setMotors] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const filteredMotors = stockMotors.filter(motor => {
-        const query = normalizeSearch(searchQuery);
+    const handleSearch = async () => {
+        const query = searchInput.trim();
 
-        if (searchField === "desc") {
-            return normalizeSearch(motor.desc).includes(query);
+        if (!query) {
+            setMotors([]);
+            return;
         }
 
-        if (searchField === "id") {
-            return normalizeSearch(motor.id).includes(query);
-        }
+        setLoading(true);
 
-        return true;
-    });
+        try {
+            const results = await getStockMotors({
+                searchField,
+                searchQuery: query
+            });
+
+            setMotors(results);
+        } catch (error) {
+            console.error("Error buscando motores:", error);
+            setMotors([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="motor-selector">
-
             <div className="motor-selector-header">
                 <h3>Seleccionar motor</h3>
             </div>
 
             <div className="motor-selector-toolbar">
-
                 <input
                     className="motor-selector-input"
                     type="text"
                     placeholder="Buscar motor..."
                     value={searchInput}
                     onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSearch();
+                        }
+                    }}
                 />
 
                 <select
@@ -53,11 +68,11 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
                 <button
                     type="button"
                     className="motor-selector-btn primary"
-                    onClick={() => setSearchQuery(searchInput)}
+                    onClick={handleSearch}
+                    disabled={loading}
                 >
-                    Buscar
+                    {loading ? "Buscando..." : "Buscar"}
                 </button>
-
             </div>
 
             <div className="motor-selector-table-container">
@@ -72,23 +87,34 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
                     </thead>
 
                     <tbody>
-                        {filteredMotors.map(motor => (
-                            <tr key={motor.id}>
-                                <td>{motor.id}</td>
-                                <td>{motor.desc}</td>
-                                <td>{motor.list_id}</td>
-
-                                <td>
-                                    <button
-                                        type="button"
-                                        className="motor-selector-btn"
-                                        onClick={() => onConfirm(motor)}
-                                    >
-                                        Seleccionar
-                                    </button>
+                        {loading ? (
+                            <tr>
+                                <td colSpan={4}>Buscando motores...</td>
+                            </tr>
+                        ) : motors.length === 0 ? (
+                            <tr>
+                                <td colSpan={4}>
+                                    No se encontraron resultados.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            motors.map(motor => (
+                                <tr key={motor.id}>
+                                    <td>{motor.id}</td>
+                                    <td>{motor.desc}</td>
+                                    <td>{motor.list_id}</td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className="motor-selector-btn"
+                                            onClick={() => onConfirm(motor)}
+                                        >
+                                            Seleccionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -102,7 +128,6 @@ const MotorSelector = ({ onConfirm, onCancel }) => {
                     Cancelar
                 </button>
             </div>
-
         </div>
     );
 };
