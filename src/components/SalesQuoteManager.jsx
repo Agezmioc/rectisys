@@ -28,9 +28,7 @@ const SalesQuoteManager = ({
         dataAccounts,
         dataConditionsTypes,
         dataTaxPositions,
-        stockMotors,
         dataDocuments,
-        getDataAccounts,
         getDataDocuments,
         getDataConditionsTypes,
         getDataTaxPositions,
@@ -44,6 +42,7 @@ const SalesQuoteManager = ({
     const [showMotorSelector, setShowMotorSelector] = useState(false);
     const [showDetails, setShowDetails] = useState(true);
     const DOCUMENT_TYPE = "presupuesto";
+    const [selectedMotor, setSelectedMotor] = useState(null);
 
     const documentId = useMemo(() => {
         return dataDocuments.find(
@@ -126,11 +125,39 @@ const SalesQuoteManager = ({
 
     const duplicatePricesUpdated = useRef(false);
 
-    const motorId = Number(quote.motor_id);
+    useEffect(() => {
+        let cancelled = false;
 
-    const selectedMotor = stockMotors.find(
-        m => m.id === motorId
-    );
+        const loadMotor = async () => {
+            if (!quote.motor_id) {
+                setSelectedMotor(null);
+                return;
+            }
+
+            try {
+                const motors = await getStockMotors({
+                    searchField: "id",
+                    searchQuery: String(quote.motor_id)
+                });
+
+                if (!cancelled) {
+                    setSelectedMotor(motors[0] ?? null);
+                }
+            } catch (error) {
+                console.error("Error cargando el motor seleccionado:", error);
+
+                if (!cancelled) {
+                    setSelectedMotor(null);
+                }
+            }
+        };
+
+        loadMotor();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [quote.motor_id, getStockMotors]);
 
     const listObj = stockLists.find(
         l => l.id === selectedMotor?.list_id
@@ -298,11 +325,9 @@ const SalesQuoteManager = ({
     );
 
     useEffect(() => {
-        getDataAccounts();
         getDataDocuments();
         getDataConditionsTypes();
         getDataTaxPositions();
-        getStockMotors();
     }, []);
 
     useEffect(() => {
@@ -576,6 +601,8 @@ const SalesQuoteManager = ({
         return (
             <MotorSelector
                 onConfirm={(motor) => {
+                    setSelectedMotor(motor);
+
                     setQuote(prev => ({
                         ...prev,
                         motor_id: motor.id
@@ -672,12 +699,7 @@ const SalesQuoteManager = ({
                                     </div>
 
                                     <div>
-                                        <label>Motor: {
-                                            quote.motor_id && (
-                                                stockMotors.find(
-                                                    m => m.id === Number(quote.motor_id)
-                                                )?.desc
-                                        )}</label>
+                                        <label>Motor: {selectedMotor?.desc || ""}</label>
                                         <button type="button" onClick={() => setShowMotorSelector(true)}>
                                             Seleccionar motor
                                         </button>

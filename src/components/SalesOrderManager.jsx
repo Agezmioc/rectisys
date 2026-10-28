@@ -17,16 +17,12 @@ const SalesOrderManager = ({
     const {
         createSalesOrder,
         updateSalesOrder,
-
-        dataAccounts,
+        getDataAccounts,
         dataConditionsTypes,
         dataTaxPositions,
-        stockMotors,
         dataDocuments,
         stockLists,
         salesSections,
-
-        getDataAccounts,
         getDataDocuments,
         getDataConditionsTypes,
         getDataTaxPositions,
@@ -140,12 +136,106 @@ const SalesOrderManager = ({
     const [items, setItems] = useState([]);
 
 
+    const [motorSelection, setMotorSelection] = useState({
+        motorId: null,
+        motor: null
+    });
+
     const motorId = Number(order.motor_id);
 
-    const selectedMotor = stockMotors.find(
-        m => m.id === motorId
-    );
+    const selectedMotor =
+        motorSelection.motorId === motorId
+            ? motorSelection.motor
+            : null;
 
+    useEffect(() => {
+        if (!order.motor_id) return;
+
+        const currentMotorId = Number(order.motor_id);
+        let cancelled = false;
+
+        const loadMotor = async () => {
+            try {
+                const motors = await getStockMotors({
+                    searchField: "id",
+                    searchQuery: String(currentMotorId)
+                });
+
+                if (!cancelled) {
+                    setMotorSelection({
+                        motorId: currentMotorId,
+                        motor: motors[0] ?? null
+                    });
+                }
+            } catch (error) {
+                console.error("Error cargando el motor de la orden:", error);
+
+                if (!cancelled) {
+                    setMotorSelection({
+                        motorId: currentMotorId,
+                        motor: null
+                    });
+                }
+            }
+        };
+
+        loadMotor();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [order.motor_id, getStockMotors]);
+
+    const [accountSelection, setAccountSelection] = useState({
+        accountId: null,
+        account: null
+    });
+
+    const selectedAccount =
+        accountSelection.accountId === Number(order.account_id)
+            ? accountSelection.account
+            : null;
+
+    useEffect(() => {
+        if (!order.account_id) return;
+
+        const currentAccountId = Number(order.account_id);
+        let cancelled = false;
+
+        const loadAccount = async () => {
+            try {
+                const accounts = await getDataAccounts({
+                    searchField: "id",
+                    searchQuery: String(currentAccountId)
+                });
+
+                if (!cancelled) {
+                    setAccountSelection({
+                        accountId: currentAccountId,
+                        account: accounts[0] ?? null
+                    });
+                }
+            } catch (error) {
+                console.error(
+                    "Error cargando el cliente de la orden:",
+                    error
+                );
+
+                if (!cancelled) {
+                    setAccountSelection({
+                        accountId: currentAccountId,
+                        account: null
+                    });
+                }
+            }
+        };
+
+        loadAccount();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [order.account_id, getDataAccounts]);
 
     /*
      * La orden tiene list_id propio.
@@ -215,17 +305,7 @@ const SalesOrderManager = ({
     };
 
     const handleImportSalesQuotes = async (quotes) => {
-
-        if (!quotes?.length) {
-            setShowSalesQuoteImporter(false);
-            return;
-        }
-
-        if (isConsumerFinalAccount) {
-            setShowSalesQuoteImporter(false);
-            return;
-        }
-
+        if (!quotes || quotes.length === 0) return;
 
         /*
         * Como solo puede seleccionarse un presupuesto,
@@ -234,212 +314,249 @@ const SalesOrderManager = ({
 
         const quote = quotes[0];
 
+        try {
+            if (!quotes?.length) {
+                setShowSalesQuoteImporter(false);
+                return;
+            }
 
-        /*
-        * Copiar datos generales del presupuesto
-        * a la orden.
-        */
+            if (isConsumerFinalAccount) {
+                setShowSalesQuoteImporter(false);
+                return;
+            }
 
-        setOrder(prev => ({
+            if (quote.account_id) {
+                const accounts = await getDataAccounts({
+                    searchField: "id",
+                    searchQuery: String(quote.account_id)
+                });
 
-            ...prev,
+                setAccountSelection({
+                    accountId: Number(quote.account_id),
+                    account: accounts[0] ?? null
+                });
+            }
 
-            account_id:
-                quote.account_id ??
-                prev.account_id,
+            if (quote.motor_id) {
+                const motors = await getStockMotors({
+                    searchField: "id",
+                    searchQuery: String(quote.motor_id)
+                });
 
-            data_condition_type_id:
-                quote.data_condition_type_id ??
-                prev.data_condition_type_id,
+                setMotorSelection({
+                    motorId: Number(quote.motor_id),
+                    motor: motors[0] ?? null
+                });
+            }
 
-            data_tax_position_id:
-                quote.data_tax_position_id ??
-                prev.data_tax_position_id,
+            /*
+            * Copiar datos generales del presupuesto
+            * a la orden.
+            */
 
-            motor_id:
-                quote.motor_id ??
-                prev.motor_id,
+            setOrder(prev => ({
 
-            name:
-                quote.name ?? prev.name,
+                ...prev,
 
-            email:
-                quote.email ?? prev.email,
+                account_id:
+                    quote.account_id ??
+                    prev.account_id,
 
-            address:
-                quote.address ??
-                prev.address,
+                data_condition_type_id:
+                    quote.data_condition_type_id ??
+                    prev.data_condition_type_id,
 
-            district:
-                quote.district ?? prev.district,
+                data_tax_position_id:
+                    quote.data_tax_position_id ??
+                    prev.data_tax_position_id,
 
-            phone_num:
-                quote.phone_num ??
-                prev.phone_num,
+                motor_id:
+                    quote.motor_id ??
+                    prev.motor_id,
 
-            reference:
-                quote.reference ??
-                prev.reference,
+                name:
+                    quote.name ?? prev.name,
 
-            purchace_order_num:
-                quote.purchace_order_num ??
-                prev.purchace_order_num,
+                email:
+                    quote.email ?? prev.email,
 
-            observations:
-                quote.observations ??
-                prev.observations,
+                address:
+                    quote.address ??
+                    prev.address,
 
-            concept_discount:
-                Number(quote.concept_discount) || 0,
+                district:
+                    quote.district ?? prev.district,
 
-            article_discount:
-                Number(quote.article_discount) || 0,
+                phone_num:
+                    quote.phone_num ??
+                    prev.phone_num,
 
-            general_discount:
-                Number(quote.general_discount) || 0,
+                reference:
+                    quote.reference ??
+                    prev.reference,
 
-            general_recharge:
-                Number(quote.general_recharge) || 0,
+                purchace_order_num:
+                    quote.purchace_order_num ??
+                    prev.purchace_order_num,
 
-            origin_document_id:
-                quote.data_document_id ?? null,
+                observations:
+                    quote.observations ??
+                    prev.observations,
 
-            origin_document_number:
-                `${quote.letter || ""}-${String(
-                    quote.point || 0
-                ).padStart(4, "0")}-${String(
-                    quote.number || 0
-                ).padStart(8, "0")}`,
+                concept_discount:
+                    Number(quote.concept_discount) || 0,
 
+                article_discount:
+                    Number(quote.article_discount) || 0,
 
+                general_discount:
+                    Number(quote.general_discount) || 0,
 
-                origin_id:
-                quote.id
+                general_recharge:
+                    Number(quote.general_recharge) || 0,
 
-            }));
+                origin_document_id:
+                    quote.data_document_id ?? null,
 
-        /*
-        * Convertir los items pendientes del presupuesto
-        * en items de la orden.
-        */
-
-        const importedItems =
-            (quote.pending_items || []).map(item => {
-
-                const quantity =
-                    Number(item.quantity) || 0;
-
-                const completed =
-                    Number(item.completed) || 0;
-
-                const pendingQuantity =
-                    quantity - completed;
-
-
-                const price =
-                    Number(item.price) || 0;
-
-                const vatValue =
-                    Number(item.vat_value) || 0;
-
-
-                const base =
-                    pendingQuantity * price;
-
-
-                const total =
-                    isConsumerFinal
-                        ? base * (1 + vatValue / 100)
-                        : base;
+                origin_document_number:
+                    `${quote.letter || ""}-${String(
+                        quote.point || 0
+                    ).padStart(4, "0")}-${String(
+                        quote.number || 0
+                    ).padStart(8, "0")}`,
 
 
-                return {
-
-                    temp_id:
-                        crypto.randomUUID(),
-
-                    stock_art_id:
-                        item.stock_art_id,
 
                     origin_id:
-                        quote.id,
+                    quote.id
 
-                    origin_document_number:
-                        `${quote.letter || ""}-${String(
-                            quote.point || 0
-                        ).padStart(4, "0")}-${String(
-                            quote.number || 0
-                        ).padStart(8, "0")}`,
+                }));
 
-                    origin_document_id:
-                        quote.data_document_id ?? null,
+            /*
+            * Convertir los items pendientes del presupuesto
+            * en items de la orden.
+            */
 
+            const importedItems =
+                (quote.pending_items || []).map(item => {
 
-                    origin_item_id:
-                        item.id,
+                    const quantity =
+                        Number(item.quantity) || 0;
 
-                    article_code:
-                        item.stock_articles?.code ||
-                        item.article_code ||
-                        "",
+                    const completed =
+                        Number(item.completed) || 0;
 
-                    article_desc:
-                        item.stock_articles?.desc ||
-                        item.article_desc ||
-                        "",
-
-                    is_concept:
-                        Boolean(item.is_concept),
-
-                    sales_section_id:
-                        "",
-
-                    /*
-                    * Cantidad inicial importada.
-                    */
-
-                    quantity:
-                        pendingQuantity,
-
-                    /*
-                    * Límite máximo que podrá tener
-                    * este item.
-                    */
-
-                    imported_quantity:
-                        pendingQuantity,
-
-                    cancelled:
-                        0,
-
-                    completed:
-                        0,
-
-                    price,
-
-                    vat_value:
-                        vatValue,
-
-                    total,
-
-                    comment:
-                        item.comment || ""
-
-                };
-
-            });
+                    const pendingQuantity =
+                        quantity - completed;
 
 
-        /*
-        * Reemplazar los items actuales.
-        *
-        * Esto hace que importar otro presupuesto
-        * reemplace completamente al anterior.
-        */
+                    const price =
+                        Number(item.price) || 0;
 
-        setItems(importedItems);
+                    const vatValue =
+                        Number(item.vat_value) || 0;
 
-        setShowSalesQuoteImporter(false);
+
+                    const base =
+                        pendingQuantity * price;
+
+
+                    const total =
+                        isConsumerFinal
+                            ? base * (1 + vatValue / 100)
+                            : base;
+
+
+                    return {
+
+                        temp_id:
+                            crypto.randomUUID(),
+
+                        stock_art_id:
+                            item.stock_art_id,
+
+                        origin_id:
+                            quote.id,
+
+                        origin_document_number:
+                            `${quote.letter || ""}-${String(
+                                quote.point || 0
+                            ).padStart(4, "0")}-${String(
+                                quote.number || 0
+                            ).padStart(8, "0")}`,
+
+                        origin_document_id:
+                            quote.data_document_id ?? null,
+
+
+                        origin_item_id:
+                            item.id,
+
+                        article_code:
+                            item.stock_articles?.code ||
+                            item.article_code ||
+                            "",
+
+                        article_desc:
+                            item.stock_articles?.desc ||
+                            item.article_desc ||
+                            "",
+
+                        is_concept:
+                            Boolean(item.is_concept),
+
+                        sales_section_id:
+                            "",
+
+                        /*
+                        * Cantidad inicial importada.
+                        */
+
+                        quantity:
+                            pendingQuantity,
+
+                        /*
+                        * Límite máximo que podrá tener
+                        * este item.
+                        */
+
+                        imported_quantity:
+                            pendingQuantity,
+
+                        cancelled:
+                            0,
+
+                        completed:
+                            0,
+
+                        price,
+
+                        vat_value:
+                            vatValue,
+
+                        total,
+
+                        comment:
+                            item.comment || ""
+
+                    };
+
+                });
+
+
+            /*
+            * Reemplazar los items actuales.
+            *
+            * Esto hace que importar otro presupuesto
+            * reemplace completamente al anterior.
+            */
+
+            setItems(importedItems);
+
+            setShowSalesQuoteImporter(false);
+        } catch (error) {
+            console.error("Error importando el presupuesto:", error);
+        }
 
     };
 
@@ -658,14 +775,10 @@ const SalesOrderManager = ({
      */
 
     useEffect(() => {
-
-        getDataAccounts();
         getDataDocuments();
         getDataConditionsTypes();
         getDataTaxPositions();
-        getStockMotors();
         getSalesSections?.();
-
     }, []);
 
 
@@ -907,14 +1020,17 @@ const SalesOrderManager = ({
                 onConfirm={(account) => {
                     const isConsumerFinal = Number(account.id) === 1;
 
+                    setAccountSelection({
+                        accountId: Number(account.id),
+                        account
+                    });
+
                     setOrder(prev => ({
                         ...prev,
                         account_id: account.id,
-
                         name: isConsumerFinal ? "" : account.name || "",
                         email: isConsumerFinal ? "" : account.email || "",
                         district: isConsumerFinal ? "" : account.district || "",
-
                         address: account.address || "",
                         phone_num: account.phone_num || "",
                         data_tax_position_id: account.tax_position_id || ""
@@ -923,6 +1039,7 @@ const SalesOrderManager = ({
                     setShowAccountSelector(false);
                 }}
 
+                onCancel={() => setShowMotorSelector(false)}
             />
 
         );
@@ -935,35 +1052,25 @@ const SalesOrderManager = ({
      */
 
     if (showMotorSelector) {
-
         return (
-
             <MotorSelector
-
                 onConfirm={(motor) => {
+                    setMotorSelection({
+                        motorId: Number(motor.id),
+                        motor
+                    });
 
                     setOrder(prev => ({
                         ...prev,
-
                         motor_id: motor.id,
-
-                        list_id:
-                            motor.list_id || ""
+                        list_id: motor.list_id || ""
                     }));
 
-
                     setShowMotorSelector(false);
-
                 }}
-
-                onCancel={() =>
-                    setShowMotorSelector(false)
-                }
-
+                onCancel={() => setShowMotorSelector(false)}
             />
-
         );
-
     }
 
     if (showSalesQuoteImporter) {
@@ -1109,19 +1216,7 @@ const SalesOrderManager = ({
                                     <div>
 
                                         <label>
-
-                                            Cliente:{" "}
-
-                                            {order.account_id && (
-
-                                                dataAccounts.find(
-                                                    acc =>
-                                                        acc.id ===
-                                                        Number(order.account_id)
-                                                )?.name
-
-                                            )}
-
+                                            <b>Cliente:</b> {selectedAccount?.name || ""}
                                         </label>
 
 
@@ -1142,18 +1237,7 @@ const SalesOrderManager = ({
                                     <div>
 
                                         <label>
-                                            Motor:{" "}
-
-                                            {order.motor_id && (
-
-                                                stockMotors.find(
-                                                    m =>
-                                                        m.id ===
-                                                        Number(order.motor_id)
-                                                )?.desc
-
-                                            )}
-
+                                            Motor: {selectedMotor?.desc || ""}
                                         </label>
 
 
@@ -1618,19 +1702,7 @@ const SalesOrderManager = ({
                                         <div>
 
                                             <label>
-
-                                                <b>Cliente:</b>{" "}
-
-                                                {order.account_id && (
-
-                                                    dataAccounts.find(
-                                                        acc =>
-                                                            acc.id ===
-                                                            Number(order.account_id)
-                                                    )?.name
-
-                                                )}
-
+                                                <b>Cliente:</b> {selectedAccount?.name || ""}
                                             </label>
 
                                         </div>

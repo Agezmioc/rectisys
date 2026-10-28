@@ -14,17 +14,21 @@ const SalesQuoteDetail = ({
     const {
         deleteSalesQuote,
         getSalesQuoteItems,
-        dataAccounts,
+        getDataAccounts,
+        getStockMotors,
         dataDocuments,
         dataConditionsTypes,
-        dataTaxPositions,
-        stockMotors
+        dataTaxPositions
     } = useData();
 
     const [items, setItems] = useState([]);
     const [loadingItems, setLoadingItems] = useState(false);
     const [showDetails, setShowDetails] = useState(true);
     const [showPrices, setShowPrices] = useState(true);
+    const [account, setAccount] = useState(null);
+    const [motor, setMotor] = useState(null);
+    const [loadingRelatedData, setLoadingRelatedData] = useState(false);
+    const [relatedDataError, setRelatedDataError] = useState(false);
 
     const handleDelete = async () => {
         const confirmed = window.confirm(
@@ -54,33 +58,91 @@ const SalesQuoteDetail = ({
     const document = dataDocuments.find(d => d.id === Number(quote.data_document_id));
     const condition = dataConditionsTypes.find(c => c.id === Number(quote.data_condition_type_id));
     const taxPosition = dataTaxPositions.find(t => t.id === Number(quote.data_tax_position_id));
-    const account = dataAccounts?.find(
-        a => String(a.id) === String(quote.account_id)
-    );
-    const motor = stockMotors?.find(
-        m => String(m.id) === String(quote.motor_id)
-    );
 
     console.log("quote.account_id:", quote.account_id);
-    console.log("accounts:", dataAccounts);
+    console.log("account:", account);
     console.log("motor_id:", quote.motor_id);
-    console.log("stockMotors:", stockMotors);
+    console.log("stockMotor:", motor);
     console.log("DATOS PARA EL DETALLE:", {
-        dataAccounts: dataAccounts?.length,
         dataDocuments: dataDocuments?.length,
         dataConditionsTypes: dataConditionsTypes?.length,
         dataTaxPositions: dataTaxPositions?.length,
-        stockMotors: stockMotors?.length
     });
 
-    const isDataReady =
-        dataAccounts?.length &&
-        dataDocuments?.length &&
-        dataConditionsTypes?.length &&
-        dataTaxPositions?.length &&
-        stockMotors?.length;
+    useEffect(() => {
+        if (!quote?.id) return;
 
-    if (!isDataReady) {
+        let cancelled = false;
+
+        const loadRelatedData = async () => {
+            setLoadingRelatedData(true);
+            setRelatedDataError(false);
+            setAccount(null);
+            setMotor(null);
+
+            try {
+                const [accounts, motors] = await Promise.all([
+                    quote.account_id
+                        ? getDataAccounts({
+                            searchField: "id",
+                            searchQuery: String(quote.account_id)
+                        })
+                        : Promise.resolve([]),
+
+                    quote.motor_id
+                        ? getStockMotors({
+                            searchField: "id",
+                            searchQuery: String(quote.motor_id)
+                        })
+                        : Promise.resolve([])
+                ]);
+
+                if (cancelled) return;
+
+                setAccount(accounts[0] ?? null);
+                setMotor(motors[0] ?? null);
+            } catch (error) {
+                console.error(
+                    "Error cargando la cuenta y el motor del presupuesto:",
+                    error
+                );
+
+                if (!cancelled) {
+                    setRelatedDataError(true);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingRelatedData(false);
+                }
+            }
+        };
+
+        loadRelatedData();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        quote?.id,
+        quote?.account_id,
+        quote?.motor_id,
+        getDataAccounts,
+        getStockMotors
+    ]);
+
+
+    const formatMoney = (value) =>
+        Number(value || 0).toLocaleString("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+    if (
+        !dataDocuments?.length ||
+        !dataConditionsTypes?.length ||
+        !dataTaxPositions?.length ||
+        loadingRelatedData
+    ) {
         return (
             <div className="sales-quote-detail">
                 <p>Cargando datos del presupuesto...</p>
@@ -88,11 +150,16 @@ const SalesQuoteDetail = ({
         );
     }
 
-    const formatMoney = (value) =>
-        Number(value || 0).toLocaleString("es-AR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
+    if (relatedDataError) {
+        return (
+            <div className="sales-quote-detail">
+                <p>
+                    No se pudieron cargar los datos de la cuenta y el motor.
+                    Intentá nuevamente.
+                </p>
+            </div>
+        );
+    }
 
     console.log("QUOTE DETAIL:", quote);
 

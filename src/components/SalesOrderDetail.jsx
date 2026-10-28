@@ -9,17 +9,20 @@ const SalesOrderDetail = ({ order, onBack, onEdit, onNew }) => {
     const {
         deleteSalesOrder,
         getSalesOrderItems,
-        dataAccounts,
+        getDataAccounts,
+        getStockMotors,
         dataDocuments,
         dataConditionsTypes,
-        dataTaxPositions,
-        stockMotors
+        dataTaxPositions
     } = useData();
 
     const [items, setItems] = useState([]);
     const [loadingItems, setLoadingItems] = useState(false);
     const [showDetails, setShowDetails] = useState(true);
     const [showPrices, setShowPrices] = useState(true);
+    const [account, setAccount] = useState(null);
+    const [motor, setMotor] = useState(null);
+    const [loadingData, setLoadingData] = useState(true);
 
     const handleDelete = async () => {
 
@@ -35,23 +38,97 @@ const SalesOrderDetail = ({ order, onBack, onEdit, onNew }) => {
     };
 
     useEffect(() => {
+        let cancelled = false;
 
-        if (!order?.id) return;
+        const loadRelatedData = async () => {
+            setLoadingData(true);
+
+            try {
+                const [accounts, motors] = await Promise.all([
+                    order?.account_id
+                        ? getDataAccounts({
+                            searchField: "id",
+                            searchQuery: String(order.account_id)
+                        })
+                        : Promise.resolve([]),
+
+                    order?.motor_id
+                        ? getStockMotors({
+                            searchField: "id",
+                            searchQuery: String(order.motor_id)
+                        })
+                        : Promise.resolve([])
+                ]);
+
+                if (!cancelled) {
+                    setAccount(accounts[0] ?? null);
+                    setMotor(motors[0] ?? null);
+                }
+            } catch (error) {
+                console.error(
+                    "Error cargando los datos relacionados de la OT:",
+                    error
+                );
+
+                if (!cancelled) {
+                    setAccount(null);
+                    setMotor(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingData(false);
+                }
+            }
+        };
+
+        loadRelatedData();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        order?.account_id,
+        order?.motor_id,
+        getDataAccounts,
+        getStockMotors
+    ]);
+
+    useEffect(() => {
+        let cancelled = false;
 
         const loadItems = async () => {
+            if (!order?.id) {
+                setItems([]);
+                return;
+            }
 
             setLoadingItems(true);
 
-            const data = await getSalesOrderItems(order.id);
+            try {
+                const data = await getSalesOrderItems(order.id);
 
-            setItems(data || []);
+                if (!cancelled) {
+                    setItems(data || []);
+                }
+            } catch (error) {
+                console.error("Error cargando los ítems de la OT:", error);
 
-            setLoadingItems(false);
+                if (!cancelled) {
+                    setItems([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingItems(false);
+                }
+            }
         };
 
         loadItems();
 
-    }, [order?.id]);
+        return () => {
+            cancelled = true;
+        };
+    }, [order?.id, getSalesOrderItems]);
 
     const document = dataDocuments.find(
         d => d.id === Number(order.data_document_id)
@@ -65,36 +142,19 @@ const SalesOrderDetail = ({ order, onBack, onEdit, onNew }) => {
         t => t.id === Number(order.data_tax_position_id)
     );
 
-    const account = dataAccounts?.find(
-        a => String(a.id) === String(order.account_id)
-    );
-
-    const motor = stockMotors?.find(
-        m => String(m.id) === String(order.motor_id)
-    );
-
-    const isDataReady =
-        dataAccounts?.length &&
-        dataDocuments?.length &&
-        dataConditionsTypes?.length &&
-        dataTaxPositions?.length &&
-        stockMotors?.length;
-
-    if (!isDataReady) {
-
-        return (
-            <div className="sales-order-detail">
-                <p>Cargando datos de la orden de trabajo...</p>
-            </div>
-        );
-
-    }
-
     const formatMoney = (value) =>
         Number(value || 0).toLocaleString("es-AR", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         });
+
+    if (loadingData) {
+        return (
+            <div className="sales-order-detail">
+                <p>Cargando datos de la orden de trabajo...</p>
+            </div>
+        );
+    }
 
     return (
 
